@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CPG Demand Planning & Cash Flow Calculator — MisEnPlace</title>
+<meta name="description" content="90-day inventory buffer, safety stock, reorder points, procurement commitment, and lead time sensitivity for CPG operators. Built by Sam Pellerito."/>
+<meta property="og:title" content="CPG Demand Planning & Cash Flow Calculator"/>
+<meta property="og:description" content="Plan your 90-day inventory, procurement commitment split by demand vs safety stock, and cash position with MoM sales growth and lead time sensitivity."/>
+<meta property="og:type" content="website"/>
+<style>
+:root{--bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.1);--text:#1A1612;--muted:#7A7068;--hint:#A09890;--accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--purple:#7F77DD;--amber:#BA7517;--navy:#9B5E28;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+.page{max-width:960px;margin:0 auto;padding:32px 20px 60px;}
+header{margin-bottom:32px;padding-bottom:24px;border-bottom:0.5px solid var(--border);}
+.header-tag{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+h1{font-size:24px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.header-desc{font-size:14px;color:var(--muted);max-width:600px;line-height:1.6;}
+.byline{font-size:13px;color:var(--muted);margin-top:10px;}
+.byline strong{color:var(--text);}
+.section-title{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin:24px 0 12px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--muted);font-weight:500;}
+.field input,.field select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:var(--card);outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.growth-banner{background:var(--surface);border-radius:10px;padding:16px 18px;margin:4px 0 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.growth-col-label{font-size:11px;color:var(--hint);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.growth-col-val{font-size:16px;font-weight:600;color:var(--text);}
+.growth-col-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.divider{border:none;border-top:0.5px solid var(--border);margin:20px 0;}
+.alert-box{border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;line-height:1.5;}
+.alert-warn{background:#FEF3C7;color:#92400E;}
+.alert-ok{background:#D1FAE5;color:#065F46;}
+.proc-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;}
+.proc-table th{font-size:10.5px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;text-align:right;padding:8px 12px;border-bottom:0.5px solid var(--border);background:var(--surface);}
+.proc-table th:first-child{text-align:left;}
+.proc-table td{padding:10px 12px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--muted);}
+.proc-table td:first-child{text-align:left;font-weight:500;color:var(--text);}
+.proc-table tfoot td{font-weight:700;color:var(--text);background:var(--surface);border-top:1px solid var(--border);}
+.pill{display:inline-block;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:3px;}
+.pill-blue{background:rgba(24,95,165,0.12);color:#185FA5;}
+.pill-teal{background:rgba(29,158,117,0.12);color:#0F6E56;}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;}
+.metric{background:var(--surface);border-radius:10px;padding:14px 16px;}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.metric-value{font-size:22px;font-weight:600;color:var(--text);}
+.metric-value.warn{color:var(--amber);}
+.metric-value.danger{color:var(--red);}
+.metric-sub{font-size:11px;color:var(--hint);margin-top:2px;}
+.sens-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+.sens-table th{font-size:10.5px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:8px 12px;border-bottom:0.5px solid var(--border);}
+.sens-table td{padding:9px 12px;border-bottom:0.5px solid var(--border);color:var(--muted);}
+.sens-table td:first-child{font-weight:500;color:var(--text);}
+.sens-table tr.hl td{background:rgba(24,95,165,0.06);color:var(--text);font-weight:500;}
+.sens-table tr.hl td:first-child{color:var(--accent);}
+.chart-wrap{position:relative;width:100%;height:240px;margin-bottom:6px;}
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 14px;font-size:12px;color:var(--muted);}
+.legend-row span{display:flex;align-items:center;gap:6px;}
+.leg{width:14px;display:inline-block;}
+.chart-note{font-size:11px;color:var(--hint);margin:2px 0 24px;}
+footer{margin-top:48px;padding-top:20px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.footer-left{font-size:13px;color:var(--muted);}
+.footer-left strong{color:var(--text);}
+.footer-right{font-size:12px;color:var(--hint);}
+@media(max-width:640px){.field-row{grid-template-columns:1fr;}.growth-banner{grid-template-columns:1fr;}h1{font-size:20px;}.proc-table{font-size:11px;}.proc-table th,.proc-table td{padding:6px 7px;}}
+
+/* ── Export bar ─────────────────── */
+.export-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-top:28px;}
+.export-bar-left{flex:1;min-width:160px;}
+.export-bar-left strong{font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:3px;}
+.export-bar-hint{font-size:12px;color:var(--muted);}
+.save-confirm{font-size:12px;color:var(--teal,#1D9E75);display:none;font-weight:500;}
+.ebtn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.ebtn:hover{opacity:.85;}
+.ebtn-hub{background:#185FA5;color:#fff;}
+.ebtn-csv{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.ebtn-xlsx{background:#1D6F42;color:#fff;}
+.ebtn-pdf{background:#c0392b;color:#fff;}
+.ebtn-reset{background:var(--surface);color:var(--muted);border:1px solid var(--border);}
+@media print{@page{size:letter;margin:1.4cm 1.6cm;}body{background:#fff;font-size:12px;}.no-print{display:none!important;}.print-only{display:block!important;}}
+.print-only{display:none;}
+@media(max-width:640px){.export-bar{flex-direction:column;align-items:flex-start;}}
+/* ── How to use ── */
+.how-to{background:rgba(24,95,165,0.04);border:1px solid rgba(24,95,165,0.12);border-radius:10px;padding:14px 18px;margin:16px 0 0;display:flex;gap:20px;flex-wrap:wrap;}
+.how-to-step{display:flex;align-items:flex-start;gap:8px;min-width:160px;flex:1;}
+.how-to-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.how-to-text{font-size:12px;color:var(--muted);line-height:1.5;}
+/* ── Sample button ── */
+.sample-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;transition:all .15s;margin-top:14px;}
+.sample-btn:hover{background:rgba(29,158,117,0.15);}
+/* ── Recommendation box ── */
+.rec-box{border-radius:12px;padding:16px 20px;margin-bottom:20px;border:1px solid rgba(29,158,117,0.25);background:rgba(29,158,117,0.06);}
+.rec-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--teal);margin-bottom:6px;}
+.rec-headline{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.rec-detail{font-size:13px;color:var(--muted);line-height:1.5;}
+/* ── Warning flags ── */
+.flags-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.flag-item{border-radius:8px;padding:10px 14px;font-size:13px;line-height:1.4;}
+.flag-warn{background:#FEF3C7;color:#92400E;}
+.flag-ok{background:#D1FAE5;color:#065F46;}
+.flag-info{background:rgba(24,95,165,0.06);color:var(--accent);}
+/* ── Related tools ── */
+.related-tools{margin-top:36px;padding-top:20px;border-top:0.5px solid var(--border);}
+.related-title{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.related-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.related-link{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:border-color .15s;}
+.related-link:hover{border-color:rgba(24,95,165,0.3);color:var(--accent);}
+</style>
+<style id="pdf-styles">
+.pdf-cover{padding:32px 0 20px;border-bottom:2px solid #0c1f3a;margin-bottom:20px;}
+.pdf-brand{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#185FA5;margin-bottom:6px;}
+.pdf-title{font-size:24px;font-weight:700;color:#0f1724;margin-bottom:4px;}
+.pdf-meta{font-size:11px;color:#6b7280;margin-top:4px;}
+.pdf-section{margin-top:18px;margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;border-bottom:0.5px solid #e5e7eb;padding-bottom:4px;}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+.pdf-tbl th{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:left;background:#f8fafb;}
+.pdf-tbl td{padding:7px 10px;border-bottom:0.5px solid #f1f3f6;color:#374151;}
+.pdf-tbl tr:last-child td{border-bottom:none;}
+.pdf-footer{margin-top:32px;padding-top:12px;border-top:0.5px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<nav style="margin-bottom:20px;">
+  <a href="../index.html" style="font-size:13px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+    <span style="font-size:16px;line-height:1;">←</span> All tools
+  </a>
+</nav>
+
+<header>
+  <p class="header-tag">MisEnPlace</p>
+  <h1>90-Day Inventory &amp; Working Capital Planner</h1>
+  <p class="header-desc">Estimate how much inventory and cash you need over the next 90 days based on demand, lead time, safety stock, payment terms, and sales growth. Shows the timing gap between when you pay for inventory and when customer cash comes back in.</p>
+  <p style="font-size:13px;color:var(--hint);margin-top:6px;">Use this before placing purchase orders, launching a growth campaign, negotiating supplier lead times, or checking whether you have enough cash to support inventory growth.</p>
+  <div class="how-to">
+    <div class="how-to-step"><div class="how-to-num">1</div><div class="how-to-text">Enter current daily sales and demand variability</div></div>
+    <div class="how-to-step"><div class="how-to-num">2</div><div class="how-to-text">Enter supplier lead time and lead time variability</div></div>
+    <div class="how-to-step"><div class="how-to-num">3</div><div class="how-to-text">Add expected month-over-month growth</div></div>
+    <div class="how-to-step"><div class="how-to-num">4</div><div class="how-to-text">Enter unit economics, cash on hand, and payment terms</div></div>
+    <div class="how-to-step"><div class="how-to-num">5</div><div class="how-to-text">Review how much inventory to buy, cash tied up, and when cash gets tight</div></div>
+  </div>
+  <button class="sample-btn" onclick="loadSample()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Load sample CPG SKU
+  </button>
+  <p class="byline" style="margin-top:10px;">Built by <strong>Sam Pellerito</strong></p>
+</header>
+
+<p class="section-title">Demand &amp; supply inputs</p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Safety stock is extra inventory held to protect against demand spikes or supplier delays. More variability, longer lead times, and higher service levels all increase the safety stock required.</p>
+<div class="field-row">
+  <div class="field"><label>Average daily sales — month 1 (units)</label><input type="number" id="avgDemand" value="50" min="1"/></div>
+  <div class="field"><label>Demand variability — std dev (units/day)</label><input type="number" id="demandSD" value="12" min="0"/></div>
+</div>
+<div class="field-row">
+  <div class="field"><label>Supplier lead time (days)</label><input type="number" id="leadTime" value="21" min="1"/></div>
+  <div class="field"><label>Lead time variability — std dev (days)</label><input type="number" id="leadSD" value="4" min="0"/></div>
+</div>
+
+<p class="section-title">Sales &amp; marketing MoM projection</p>
+<div class="field-row">
+  <div class="field"><label>Month 1 → Month 2 growth (%)</label><input type="number" id="growth1" value="15" step="1"/></div>
+  <div class="field"><label>Month 2 → Month 3 growth (%)</label><input type="number" id="growth2" value="20" step="1"/></div>
+</div>
+<div class="growth-banner">
+  <div><p class="growth-col-label">Month 1 (days 1–30)</p><p class="growth-col-val" id="dem-m1">—</p><p class="growth-col-sub">SS: <span id="ss-m1">—</span> units</p></div>
+  <div><p class="growth-col-label">Month 2 (days 31–60)</p><p class="growth-col-val" id="dem-m2">—</p><p class="growth-col-sub">SS: <span id="ss-m2">—</span> units</p></div>
+  <div><p class="growth-col-label">Month 3 (days 61–90)</p><p class="growth-col-val" id="dem-m3">—</p><p class="growth-col-sub">SS: <span id="ss-m3">—</span> units</p></div>
+</div>
+
+<p class="section-title">Cost &amp; cash inputs</p>
+<div class="field-row">
+  <div class="field"><label>Unit cost ($)</label><input type="number" id="unitCost" value="4.50" step="0.01" min="0.01"/></div>
+  <div class="field"><label>Unit selling price ($)</label><input type="number" id="unitPrice" value="12.00" step="0.01" min="0.01"/></div>
+</div>
+<div class="field-row">
+  <div class="field"><label>Starting cash on hand ($)</label><input type="number" id="startCash" value="50000" step="100"/></div>
+  <div class="field"><label>Payment terms — days to collect</label><input type="number" id="dso" value="30" min="0"/></div>
+</div>
+<div class="field-row">
+  <div class="field"><label>Target service level</label>
+    <select id="serviceLevel">
+      <option value="1.28">90%</option>
+      <option value="1.65" selected>95%</option>
+      <option value="1.96">97.5%</option>
+      <option value="2.33">99%</option>
+    </select>
+    <span style="font-size:11px;color:var(--hint);margin-top:2px;">Higher service levels reduce stockout risk but require more safety stock and more cash tied up in inventory.</span>
+  </div>
+  <div class="field"><label>Holding cost (% of unit cost / year)</label><input type="number" id="holdingPct" value="25" min="1" max="100"/></div>
+</div>
+
+<div class="divider"></div>
+<div id="flagsList" class="flags-list" style="display:none"></div>
+
+<p class="section-title">Planned purchase orders and cash required</p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:10px;">This table shows how many units you are buying to cover expected sales versus how many units are extra buffer. The safety stock portion is cash tied up before it becomes revenue.</p>
+<table class="proc-table" aria-label="Procurement breakdown by demand inventory and safety stock per purchase order">
+  <thead>
+    <tr>
+      <th>Order</th>
+      <th>Demand units <span class="pill pill-blue">selling</span></th>
+      <th>Safety stock <span class="pill pill-teal">buffer</span></th>
+      <th>Total units</th>
+      <th>Demand cost</th>
+      <th>SS cost</th>
+      <th>Total cash out</th>
+      <th>Arrives day</th>
+    </tr>
+  </thead>
+  <tbody id="procBody"></tbody>
+  <tfoot id="procFoot"></tfoot>
+</table>
+<p class="chart-note" style="margin-top:6px">Safety stock cost is cash tied up as buffer — not generating revenue until sold. Reducing lead time directly shrinks this number.</p>
+
+<p class="section-title">90-day cash summary</p>
+<div id="recBox" class="rec-box" style="display:none;">
+  <div class="rec-label">Working capital snapshot</div>
+  <div class="rec-headline" id="recHeadline"></div>
+  <div class="rec-detail" id="recDetail"></div>
+</div>
+<div class="metric-grid">
+  <div class="metric"><p class="metric-label">Peak cash needed</p><p class="metric-value" id="out-peak">—</p><p class="metric-sub">working capital req.</p></div>
+  <div class="metric"><p class="metric-label">Cash low point</p><p class="metric-value" id="out-cashlow">—</p><p class="metric-sub">day <span id="out-cashlow-day">—</span></p></div>
+  <div class="metric"><p class="metric-label">Total SS cash tied up</p><p class="metric-value" id="out-sscost">—</p><p class="metric-sub">buffer across all POs</p></div>
+  <div class="metric"><p class="metric-label">Total revenue</p><p class="metric-value" id="out-rev">—</p><p class="metric-sub">gross 90-day sales</p></div>
+  <div class="metric"><p class="metric-label">Ending cash</p><p class="metric-value" id="out-cashend">—</p><p class="metric-sub">day 90</p></div>
+</div>
+
+<p class="section-title">Lead time sensitivity — cash outlay &amp; safety stock cost</p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Use this table to see how much cash a shorter lead time is worth — useful when negotiating with suppliers.</p>
+<table class="sens-table" aria-label="Lead time sensitivity analysis showing how cash outlay and safety stock costs change">
+  <thead><tr>
+    <th>Lead time</th>
+    <th>Total units</th>
+    <th>Demand cost</th>
+    <th>SS cost</th>
+    <th>Total outlay</th>
+    <th>Cash low</th>
+    <th>vs your LT</th>
+  </tr></thead>
+  <tbody id="sensBody"></tbody>
+</table>
+<p class="chart-note" style="margin-top:8px">Highlighted row is your current lead time. The SS cost column shows exactly how much buffer cash you free up by negotiating shorter lead times.</p>
+
+<p class="section-title">Inventory level — 90 days</p>
+<div class="legend-row">
+  <span><span class="leg" style="border-top:2px solid #378ADD"></span>Inventory (units)</span>
+  <span><span class="leg" style="border-top:2px dashed #E24B4A"></span>Reorder point</span>
+  <span><span class="leg" style="border-top:2px dashed #1D9E75"></span>Safety stock (grows monthly)</span>
+</div>
+<div class="chart-wrap"><canvas id="invChart" role="img" aria-label="Inventory levels over 90 days">Inventory chart.</canvas></div>
+
+<p class="section-title" style="margin-top:28px">Cash position — 90 days</p>
+<div class="legend-row">
+  <span><span class="leg" style="border-top:2.5px solid #7F77DD"></span>Cash on hand</span>
+  <span><span class="leg" style="border-top:2px solid #E24B4A"></span>PO outflow</span>
+  <span><span class="leg" style="border-top:2px solid #1D9E75"></span>Sales receipts</span>
+</div>
+<div class="chart-wrap"><canvas id="cashChart" role="img" aria-label="Cash position over 90 days">Cash chart.</canvas></div>
+<p class="chart-note">PO payments go out at days 1, 30, and 60. Inventory arrives after lead time. Sales receipts come in after your payment terms. The gap between them is your cash-to-cash cycle.</p>
+
+<div class="export-bar no-print">
+  <div class="export-bar-left">
+    <strong>Export this demand &amp; cash flow plan</strong>
+    <span class="save-confirm" id="saveConfirm">&#10003; Saved to Export Hub</span><span class="export-bar-hint" id="exportHint">Save to Hub or download as CSV, Excel, or PDF</span>
+  </div>
+  <button class="ebtn ebtn-hub" onclick="saveForExport()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Save to Hub
+  </button>
+  <button class="ebtn ebtn-csv" onclick="exportCSV()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    CSV
+  </button>
+  <button class="ebtn ebtn-xlsx" onclick="exportExcel()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Excel
+  </button>
+  <button class="ebtn ebtn-pdf" onclick="exportPDF()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    PDF
+  </button>
+  <button class="ebtn ebtn-reset" onclick="resetForm(this)" title="Reset all inputs to defaults">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
+    Reset
+  </button>
+</div>
+<div id="pdfReport" class="print-only"></div>
+<footer>
+  <div class="footer-left">Built by <strong>Sam Pellerito</strong> — MisEnPlace</div>
+  <div class="footer-right"><a href="../index.html" style="color:var(--hint);text-decoration:none;">← All tools</a></div>
+</footer>
+
+<div class="related-tools no-print">
+  <p class="related-title">Related tools</p>
+  <div class="related-grid">
+    <a class="related-link" href="../04-moq-run-size-optimizer/moq-run-size-optimizer.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      MOQ & Run Size Optimizer
+    </a>
+    <a class="related-link" href="../06-cash-to-cash-cycle/cash-to-cash-cycle.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
+      Cash-to-Cash Cycle
+    </a>
+    <a class="related-link" href="../07-stockout-vs-overstock-cost/stockout-vs-overstock-cost.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Stockout vs Overstock Cost
+    </a>
+    <a class="related-link" href="../08-landed-cost-freight/landed-cost-freight.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Landed Cost & Freight
+    </a>
+    <a class="related-link" href="../04-moq-run-size-optimizer/moq-run-size-optimizer.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Operational Impact Calculator
+    </a>
+  </div>
+</div>
+
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+if(typeof Chart === 'undefined'){
+  var _s = document.createElement('script');
+  _s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+  document.head.appendChild(_s);
+}
+</script>
+<script>
+let invChart=null,cashChart=null;
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+function fmt(n){return '$'+Math.round(n).toLocaleString();}
+function fmtN(n){return Math.round(n).toLocaleString();}
+function demForDay(i,d1,d2,d3){return i<=30?d1:i<=60?d2:d3;}
+function ssForDay(i,ss1,ss2,ss3){return i<=30?ss1:i<=60?ss2:ss3;}
+function calcSS(d,sd_d,lt,sd_lt,z){return Math.round(z*Math.sqrt(lt*sd_d*sd_d+d*d*sd_lt*sd_lt));}
+
+function runSim(d1,d2,d3,ss1,ss2,ss3,lt,uc,price,startCash,dso){
+  const DAYS=90,reviewDays=[1,30,60];
+  const invData=[],cashArr=[],ropByDay=[],ssByDay=[];
+  const poByDay=new Array(DAYS+1).fill(0),recByDay=new Array(DAYS+1).fill(0);
+  const orders=[];
+  let inv=Math.round(d1*30+ss1*2),cash=startCash;
+  const pending=[];
+  let totalSpend=0,totalRev=0,totalUnits=0,totalSSUnits=0,totalDemUnits=0;
+
+  for(let i=0;i<=DAYS;i++){
+    const dem=demForDay(i||1,d1,d2,d3);
+    const ss=ssForDay(i||1,ss1,ss2,ss3);
+    const rop=Math.round(dem*lt+ss);
+    ropByDay.push(rop);ssByDay.push(ss);
+    if(i===0){invData.push(Math.round(inv));cashArr.push(Math.round(cash));continue;}
+    const arr=pending.filter(o=>o.day===i);
+    arr.forEach(o=>{inv+=o.qty;});
+    pending.splice(0,pending.length,...pending.filter(o=>o.day!==i));
+    const sold=Math.min(inv,dem);
+    inv=Math.max(0,inv-dem);
+    totalRev+=sold*price;
+    recByDay[Math.min(DAYS,i+dso)]+=sold*price;
+    if(reviewDays.includes(i)){
+      const nextDem=demForDay(i+15,d1,d2,d3);
+      const nextSS=ssForDay(i+15,ss1,ss2,ss3);
+      const demQty=Math.round(nextDem*30);
+      const qty=demQty+nextSS;
+      const demCost=demQty*uc,ssCost=nextSS*uc,cost=qty*uc;
+      pending.push({day:i+lt,qty});
+      poByDay[i]=cost;cash-=cost;
+      totalSpend+=cost;totalUnits+=qty;
+      totalSSUnits+=nextSS;totalDemUnits+=demQty;
+      orders.push({day:i,demQty,ssQty:nextSS,qty,demCost,ssCost,cost,arrival:i+lt});
+    }
+    cash+=recByDay[i];
+    invData.push(Math.round(Math.max(0,inv)));
+    cashArr.push(Math.round(cash));
+  }
+  const minCash=Math.min(...cashArr);
+  const minDay=cashArr.indexOf(minCash);
+  return {invData,cashArr,ropByDay,ssByDay,poByDay,recByDay,orders,
+    totalSpend,totalRev,totalUnits,totalSSUnits,totalDemUnits,
+    totalSSCost:totalSSUnits*uc,totalDemCost:totalDemUnits*uc,
+    minCash,minDay,peakNeed:startCash-minCash};
+}
+
+function calc(){
+  const d1=val('avgDemand');
+  const g1=val('growth1')/100,g2=val('growth2')/100;
+  const d2=d1*(1+g1),d3=d2*(1+g2);
+  const sd_d=val('demandSD'),lt=val('leadTime'),sd_lt=val('leadSD');
+  const z=parseFloat(document.getElementById('serviceLevel').value);
+  const uc=val('unitCost'),price=val('unitPrice');
+  const startCash=val('startCash'),dso=val('dso');
+  const ss1=calcSS(d1,sd_d,lt,sd_lt,z);
+  const ss2=calcSS(d2,sd_d,lt,sd_lt,z);
+  const ss3=calcSS(d3,sd_d,lt,sd_lt,z);
+
+  document.getElementById('dem-m1').textContent=d1.toFixed(1)+' u/day';
+  document.getElementById('dem-m2').textContent=d2.toFixed(1)+' u/day';
+  document.getElementById('dem-m3').textContent=d3.toFixed(1)+' u/day';
+  document.getElementById('ss-m1').textContent=ss1.toLocaleString();
+  document.getElementById('ss-m2').textContent=ss2.toLocaleString();
+  document.getElementById('ss-m3').textContent=ss3.toLocaleString();
+
+  const sim=runSim(d1,d2,d3,ss1,ss2,ss3,lt,uc,price,startCash,dso);
+
+  const tbody=document.getElementById('procBody');
+  tbody.innerHTML='';
+  const poNames=['PO 1 — Day 1','PO 2 — Day 30','PO 3 — Day 60'];
+  sim.orders.forEach((o,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${poNames[i]||'PO '+(i+1)}</td>
+      <td>${fmtN(o.demQty)} units</td>
+      <td style="color:#1D9E75">${fmtN(o.ssQty)} units</td>
+      <td style="font-weight:700;color:#0f1724">${fmtN(o.qty)} units</td>
+      <td>${fmt(o.demCost)}</td>
+      <td style="color:#1D9E75">${fmt(o.ssCost)}</td>
+      <td style="font-weight:700;color:#0f1724">${fmt(o.cost)}</td>
+      <td>${o.arrival<=90?'Day '+o.arrival:'Day '+o.arrival+' ⚠'}</td>`;
+    tbody.appendChild(tr);
+  });
+  const tfoot=document.getElementById('procFoot');
+  tfoot.innerHTML=`<tr>
+    <td>Total</td>
+    <td>${fmtN(sim.totalDemUnits)} units</td>
+    <td style="color:#1D9E75">${fmtN(sim.totalSSUnits)} units</td>
+    <td>${fmtN(sim.totalUnits)} units</td>
+    <td>${fmt(sim.totalDemCost)}</td>
+    <td style="color:#1D9E75">${fmt(sim.totalSSCost)}</td>
+    <td>${fmt(sim.totalSpend)}</td>
+    <td style="font-size:11px;color:#9ca3af">90-day</td>
+  </tr>`;
+
+  const peakEl=document.getElementById('out-peak');
+  peakEl.textContent=fmt(Math.max(0,sim.peakNeed));
+  peakEl.className='metric-value'+(sim.peakNeed>startCash*0.8?' warn':'');
+  const lowEl=document.getElementById('out-cashlow');
+  lowEl.textContent=fmt(sim.minCash);
+  lowEl.className='metric-value'+(sim.minCash<0?' danger':sim.minCash<startCash*0.2?' warn':'');
+  document.getElementById('out-cashlow-day').textContent=sim.minDay;
+  document.getElementById('out-sscost').textContent=fmt(sim.totalSSCost);
+  document.getElementById('out-rev').textContent=fmt(sim.totalRev);
+  document.getElementById('out-cashend').textContent=fmt(sim.cashArr[90]||0);
+
+  // ── Recommendation box ──
+  const rb = document.getElementById('recBox');
+  rb.style.display = 'block';
+  document.getElementById('recHeadline').textContent =
+    'You need '+fmt(Math.max(0,sim.peakNeed))+' of peak working capital. '
+    +'Cash low point is '+fmt(sim.minCash)+' on day '+sim.minDay+'.';
+  let detailText = 'Safety stock accounts for '+fmt(sim.totalSSCost)+' of cash tied up in inventory before it becomes revenue.';
+  if(lt > 10){
+    const ltShort = Math.max(7, Math.round(lt) - 10);
+    const ss1s=calcSS(d1,sd_d,ltShort,val('leadSD'),z);
+    const ss2s=calcSS(d2,sd_d,ltShort,val('leadSD'),z);
+    const ss3s=calcSS(d3,sd_d,ltShort,val('leadSD'),z);
+    const simShort=runSim(d1,d2,d3,ss1s,ss2s,ss3s,ltShort,uc,price,startCash,dso);
+    const saving = sim.totalSSCost - simShort.totalSSCost;
+    if(saving > 0){
+      detailText += ' Shortening lead time from '+Math.round(lt)+' to '+ltShort+' days would reduce safety stock cash by approximately '+fmt(saving)+'.';
+    }
+  }
+  document.getElementById('recDetail').textContent = detailText;
+
+  // ── Warning flags ──
+  const flagsList = document.getElementById('flagsList');
+  const flags = [];
+  if(sim.minCash < 0){
+    flags.push({cls:'flag-warn', msg:'⚠ Cash goes negative on day '+sim.minDay+'. You need at least '+fmt(Math.abs(sim.minCash))+' more in working capital to sustain this growth trajectory.'});
+  } else if(sim.minCash < startCash*0.15){
+    flags.push({cls:'flag-warn', msg:'⚠ Cash dips to '+fmt(sim.minCash)+' on day '+sim.minDay+' — running very lean. Consider a credit line or negotiate extended supplier terms.'});
+  } else {
+    flags.push({cls:'flag-ok', msg:'✓ Cash stays positive through 90 days. Lowest point is '+fmt(sim.minCash)+' on day '+sim.minDay+'.'});
+  }
+  if(ss1 > d1 * 30){
+    flags.push({cls:'flag-warn', msg:'⚠ Safety stock ('+fmtN(ss1)+' units) exceeds one full month of demand. This is a large buffer — consider whether variability assumptions are realistic.'});
+  }
+  if(lt >= 30){
+    flags.push({cls:'flag-warn', msg:'⚠ Lead time ('+Math.round(lt)+' days) equals or exceeds your 30-day reorder cycle. Orders may overlap — inventory planning becomes critical.'});
+  }
+  if(dso > lt){
+    flags.push({cls:'flag-info', msg:'ℹ Payment terms ('+dso+' days to collect) are longer than your lead time ('+Math.round(lt)+' days). You pay suppliers before customers pay you — this widens your cash-to-cash gap.'});
+  }
+  const m3VsM1 = d3 / d1;
+  if(m3VsM1 > 1.5){
+    flags.push({cls:'flag-info', msg:'ℹ Month 3 demand is '+m3VsM1.toFixed(1)+'× month 1. Your third purchase order will be significantly larger than the first — make sure cash is available for that step-up.'});
+  }
+  if(flags.length){
+    flagsList.style.display='flex';
+    flagsList.innerHTML=flags.map(f=>`<div class="flag-item ${f.cls}">${f.msg}</div>`).join('');
+  } else {
+    flagsList.style.display='none';
+  }
+
+  const ltScenarios=[7,14,21,28,35,42];
+  const sensBody=document.getElementById('sensBody');
+  sensBody.innerHTML='';
+  ltScenarios.forEach(ltX=>{
+    const ss1x=calcSS(d1,sd_d,ltX,sd_lt,z);
+    const ss2x=calcSS(d2,sd_d,ltX,sd_lt,z);
+    const ss3x=calcSS(d3,sd_d,ltX,sd_lt,z);
+    const sx=runSim(d1,d2,d3,ss1x,ss2x,ss3x,ltX,uc,price,startCash,dso);
+    const diff=sx.totalSpend-sim.totalSpend;
+    const isBase=ltX===Math.round(lt);
+    const tr=document.createElement('tr');
+    if(isBase) tr.className='hl';
+    tr.innerHTML=`<td>${ltX} days${isBase?' ← current':''}</td>
+      <td>${fmtN(sx.totalUnits)}</td>
+      <td>${fmt(sx.totalDemCost)}</td>
+      <td style="color:#1D9E75">${fmt(sx.totalSSCost)}</td>
+      <td>${fmt(sx.totalSpend)}</td>
+      <td style="color:${sx.minCash<0?'#E24B4A':'inherit'}">${fmt(sx.minCash)}</td>
+      <td style="color:${diff>0?'#E24B4A':diff<0?'#1D9E75':'inherit'}">${isBase?'—':(diff>=0?'+':'')+fmt(diff)}</td>`;
+    sensBody.appendChild(tr);
+  });
+
+  const labels=Array.from({length:91},(_,i)=>i%15===0?'Day '+i:'');
+  const poPoints=new Array(91).fill(null);
+  const recPoints=new Array(91).fill(null);
+  [1,30,60].forEach(rd=>{if(sim.poByDay[rd]>0) poPoints[rd]=-Math.round(sim.poByDay[rd]);});
+  for(let i=0;i<=90;i++){if(sim.recByDay[i]>0) recPoints[i]=Math.round(sim.recByDay[i]);}
+
+  if(typeof Chart === 'undefined'){ console.warn('Chart.js failed to load — charts disabled'); return; }
+  if(invChart) invChart.destroy();
+  invChart=new Chart(document.getElementById('invChart'),{type:'line',
+    data:{labels,datasets:[
+      {label:'Inventory',data:sim.invData,borderColor:'#378ADD',borderWidth:2,pointRadius:0,tension:0.2,fill:false},
+      {label:'Reorder point',data:sim.ropByDay,borderColor:'#E24B4A',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
+      {label:'Safety stock',data:sim.ssByDay,borderColor:'#1D9E75',borderWidth:1.5,borderDash:[2,5],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+Math.round(ctx.parsed.y).toLocaleString()+' units'}}},
+      scales:{x:{ticks:{color:'#9ca3af',font:{size:11},maxRotation:0,autoSkip:false},grid:{color:'rgba(0,0,0,0.05)'}},
+        y:{min:0,ticks:{color:'#9ca3af',font:{size:11},callback:v=>Math.round(v).toLocaleString()},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+
+  if(cashChart) cashChart.destroy();
+  cashChart=new Chart(document.getElementById('cashChart'),{type:'line',
+    data:{labels,datasets:[
+      {label:'Cash on hand',data:sim.cashArr,borderColor:'#7F77DD',borderWidth:2.5,pointRadius:0,tension:0.3,fill:false},
+      {label:'PO outflow',data:poPoints,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,0.2)',pointRadius:6,pointStyle:'triangle',showLine:false},
+      {label:'Sales receipt',data:recPoints,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.15)',pointRadius:4,pointStyle:'circle',showLine:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(Math.abs(ctx.parsed.y))+(ctx.datasetIndex===1?' out':ctx.datasetIndex===2?' in':'')}}},
+      scales:{x:{ticks:{color:'#9ca3af',font:{size:11},maxRotation:0,autoSkip:false},grid:{color:'rgba(0,0,0,0.05)'}},
+        y:{ticks:{color:'#9ca3af',font:{size:11},callback:v=>fmt(v)},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',calc));
+
+function loadSample(){
+  document.getElementById('avgDemand').value  = '500';
+  document.getElementById('demandSD').value   = '125';
+  document.getElementById('leadTime').value   = '30';
+  document.getElementById('leadSD').value     = '5';
+  document.getElementById('growth1').value    = '20';
+  document.getElementById('growth2').value    = '15';
+  document.getElementById('unitCost').value   = '1.25';
+  document.getElementById('unitPrice').value  = '3.99';
+  document.getElementById('startCash').value  = '50000';
+  document.getElementById('dso').value        = '30';
+  // Set service level to 95%
+  const sl = document.getElementById('serviceLevel');
+  for(let i=0;i<sl.options.length;i++){ if(sl.options[i].value==='1.65'){ sl.selectedIndex=i; break; } }
+  document.getElementById('holdingPct').value = '25';
+  calc();
+}
+
+function flashResetBtn(btn){
+  if(!btn) return;
+  const orig=btn.innerHTML;
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 12 4 9"/></svg> ✓ Cleared';
+  btn.style.background='rgba(29,158,117,0.12)'; btn.style.color='var(--teal)'; btn.style.borderColor='rgba(29,158,117,0.3)';
+  setTimeout(()=>{ btn.innerHTML=orig; btn.style.background=''; btn.style.color=''; btn.style.borderColor=''; }, 2000);
+}
+function resetForm(btn){
+  localStorage.removeItem('cpg_export_demand-planning');
+  flashResetBtn(btn);
+  document.querySelectorAll('input,select').forEach(el=>{
+    const def=el.getAttribute('value');
+    if(el.tagName==='SELECT'){ el.selectedIndex=0; }
+    else if(def!==null){ el.value=def; }
+  });
+  calc();
+}
+if(document.readyState === 'complete'){ calc(); } else { window.addEventListener('load', calc); }
+
+const getVal = id => { const el=document.getElementById(id); return el ? (el.value||'--') : '--'; };
+const getTxt = id => { const el=document.getElementById(id); return el ? el.textContent.trim()||'--' : '--'; };
+
+function saveForExport(){
+  const metrics = [
+    {name:'Peak cash needed', formatted: getTxt('out-peak'), sentiment:''},
+    {name:'Cash low point', formatted: getTxt('out-cashlow'), sentiment:'warn'},
+    {name:'Total safety stock cash tied up', formatted: getTxt('out-sscost'), sentiment:''},
+    {name:'Total 90-day revenue', formatted: getTxt('out-rev'), sentiment:'good'},
+    {name:'Ending cash (day 90)', formatted: getTxt('out-cashend'), sentiment:''}
+  ];
+  const data = { toolId:'demand-planning', toolLabel:'Demand Planning & Safety Stock', savedAt: new Date().toISOString(), metrics };
+  localStorage.setItem('cpg_export_demand-planning', JSON.stringify(data));
+  const c = document.getElementById('saveConfirm');
+  const h=document.getElementById('exportHint'); if(c){ c.style.display='inline'; if(h) h.style.display='none'; setTimeout(()=>{ c.style.display='none'; if(h) h.style.display='inline'; }, 3000); }
+}
+
+function exportCSV(){
+  const q = s => '"'+String(s||'').replace(/"/g,'""')+'"';
+  const now = new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const rows = [];
+  rows.push([q('Demand Planning & Safety Stock -- MisEnPlace'), q('Exported: '+now)]);
+  rows.push([]);
+  rows.push([q('-- INPUTS --')]);
+  rows.push([q('Avg daily sales month 1 (units)'), q(getVal('avgDemand'))]);
+  rows.push([q('Demand variability std dev (units/day)'), q(getVal('demandSD'))]);
+  rows.push([q('Supplier lead time (days)'), q(getVal('leadTime'))]);
+  rows.push([q('Lead time variability std dev (days)'), q(getVal('leadSD'))]);
+  rows.push([q('Month 1 to 2 growth (%)'), q(getVal('growth1'))]);
+  rows.push([q('Month 2 to 3 growth (%)'), q(getVal('growth2'))]);
+  rows.push([q('Unit cost ($)'), q(getVal('unitCost'))]);
+  rows.push([q('Unit selling price ($)'), q(getVal('unitPrice'))]);
+  rows.push([q('Starting cash on hand ($)'), q(getVal('startCash'))]);
+  rows.push([q('Days to collect (DSO)'), q(getVal('dso'))]);
+  rows.push([]);
+  rows.push([q('-- RESULTS --')]);
+  rows.push([q('Metric'), q('Value')]);
+  rows.push([q('Peak cash needed'), q(getTxt('out-peak'))]);
+  rows.push([q('Cash low point'), q(getTxt('out-cashlow'))]);
+  rows.push([q('Total safety stock cash tied up'), q(getTxt('out-sscost'))]);
+  rows.push([q('Total 90-day revenue'), q(getTxt('out-rev'))]);
+  rows.push([q('Ending cash (day 90)'), q(getTxt('out-cashend'))]);
+  const csv = rows.map(r=>r.join(',')).join('\r\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='demand-planning-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){alert('Excel library loading -- try again in a moment.');return;}
+  const now = new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const wb = XLSX.utils.book_new();
+  const rows = [
+    ['Demand Planning & Safety Stock', '', 'Exported: '+now],
+    [],
+    ['-- INPUTS --'],
+    ['Avg daily sales month 1 (units)', getVal('avgDemand')],
+    ['Demand variability std dev (units/day)', getVal('demandSD')],
+    ['Supplier lead time (days)', getVal('leadTime')],
+    ['Lead time variability std dev (days)', getVal('leadSD')],
+    ['Month 1 to 2 growth (%)', getVal('growth1')],
+    ['Month 2 to 3 growth (%)', getVal('growth2')],
+    ['Unit cost ($)', getVal('unitCost')],
+    ['Unit selling price ($)', getVal('unitPrice')],
+    ['Starting cash on hand ($)', getVal('startCash')],
+    ['Days to collect (DSO)', getVal('dso')],
+    [],
+    ['-- RESULTS --'],
+    ['Metric','Value'],
+    ['Peak cash needed', getTxt('out-peak')],
+    ['Cash low point', getTxt('out-cashlow')],
+    ['Total safety stock cash tied up', getTxt('out-sscost')],
+    ['Total 90-day revenue', getTxt('out-rev')],
+    ['Ending cash (day 90)', getTxt('out-cashend')],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:36},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Results');
+  XLSX.writeFile(wb, 'demand-planning-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+function exportPDF(){
+  const now = new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inp = [['Avg daily sales month 1', getVal('avgDemand')],['Demand std dev', getVal('demandSD')],['Lead time (days)', getVal('leadTime')],['Lead time std dev', getVal('leadSD')],['M1-M2 growth %', getVal('growth1')],['M2-M3 growth %', getVal('growth2')],['Unit cost', getVal('unitCost')],['Selling price', getVal('unitPrice')],['Starting cash', getVal('startCash')],['DSO (days)', getVal('dso')]];
+  const met = [['Peak cash needed', getTxt('out-peak')],['Cash low point', getTxt('out-cashlow')],['Safety stock cash tied up', getTxt('out-sscost')],['Total 90-day revenue', getTxt('out-rev')],['Ending cash (day 90)', getTxt('out-cashend')]];
+  const inputRows = inp.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('');
+  const metRows   = met.map(r=>`<tr><td>${esc(r[0])}</td><td style="font-weight:600">${esc(r[1])}</td></tr>`).join('');
+  document.getElementById('pdfReport').innerHTML = `
+    <div class="pdf-cover"><p class="pdf-brand">MisEnPlace</p><h2 class="pdf-title">Demand Planning &amp; Safety Stock</h2><p class="pdf-meta">90-day cash and safety stock model &middot; ${now}</p></div>
+    <p class="pdf-section">Inputs</p>
+    <table class="pdf-tbl"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>${inputRows}</tbody></table>
+    <p class="pdf-section" style="margin-top:18px">Results</p>
+    <table class="pdf-tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>${metRows}</tbody></table>
+    <div class="pdf-footer"><span>Demand Planning &amp; Safety Stock -- MisEnPlace -- Sam Pellerito</span><span>Exported ${now}</span></div>`;
+  setTimeout(()=>window.print(),120);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dashboard — MisEnPlace</title>
+<meta name="description" content="Cross-tool analytics dashboard. View saved data from all MisEnPlace tools in one place."/>
+<style>
+:root{
+  --bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.1);
+  --text:#1A1612;--muted:#7A7068;--hint:#A09890;
+  --accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--amber:#BA7517;--purple:#7F77DD;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+a{color:inherit;text-decoration:none;}
+.page{max-width:1040px;margin:0 auto;padding:36px 24px 80px;}
+
+/* ── Header ── */
+.dash-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:36px;padding-bottom:24px;border-bottom:0.5px solid var(--border);}
+.dash-title-row{display:flex;align-items:center;gap:12px;}
+.brand-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.brand-mark svg{color:#fff;}
+.dash-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;}
+.dash-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.btn-back{display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:9px;padding:8px 14px;font-size:13px;font-weight:500;transition:border-color .15s;}
+.btn-back:hover{border-color:var(--accent);color:var(--text);}
+
+/* ── No data state ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state p{font-size:14px;margin-bottom:8px;}
+.empty-state a{color:var(--accent);}
+
+/* ── Section titles ── */
+.section-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin:32px 0 14px;}
+
+/* ── KPI grid ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:8px;}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.kpi-tool{font-size:10.5px;color:var(--hint);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.kpi-label{font-size:11.5px;color:var(--muted);margin-bottom:3px;}
+.kpi-val{font-size:22px;font-weight:700;color:var(--text);}
+.kpi-val.positive{color:var(--teal);}
+.kpi-val.warn{color:var(--amber);}
+.kpi-val.danger{color:var(--red);}
+.kpi-sub{font-size:11px;color:var(--hint);margin-top:2px;}
+.kpi-link{display:inline-block;font-size:11px;color:var(--accent);margin-top:6px;}
+
+/* ── Margin waterfall ── */
+.waterfall-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:8px;}
+.waterfall-note{font-size:11.5px;color:var(--muted);margin-bottom:18px;}
+.waterfall-bar-group{display:flex;flex-direction:column;gap:8px;}
+.wf-row{display:grid;grid-template-columns:160px 1fr 72px;gap:12px;align-items:center;}
+.wf-label{font-size:12.5px;color:var(--muted);font-weight:500;}
+.wf-track{background:var(--surface);border-radius:4px;height:22px;overflow:hidden;position:relative;}
+.wf-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.wf-val{font-size:12.5px;font-weight:700;text-align:right;white-space:nowrap;}
+.wf-divider{border:none;border-top:0.5px dashed var(--border);margin:6px 0;}
+
+/* ── Scenarios table ── */
+.scenarios-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;}
+.scenarios-table{width:100%;border-collapse:collapse;font-size:13px;}
+.scenarios-table th{font-size:10.5px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;background:var(--surface);border-bottom:0.5px solid var(--border);text-align:right;}
+.scenarios-table th:first-child{text-align:left;}
+.scenarios-table td{padding:11px 14px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--muted);}
+.scenarios-table td:first-child{text-align:left;font-weight:500;color:var(--text);}
+.scenarios-table tr:last-child td{border-bottom:none;}
+.scenarios-table .positive{color:var(--teal);font-weight:600;}
+
+/* ── Tool status grid ── */
+.status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.status-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.status-dot.saved{background:var(--teal);}
+.status-dot.empty{background:var(--border);}
+.status-info{flex:1;min-width:0;}
+.status-name{font-size:13px;font-weight:500;color:var(--text);}
+.status-meta{font-size:11.5px;color:var(--hint);}
+.status-link{font-size:11.5px;color:var(--accent);flex-shrink:0;}
+
+footer{margin-top:48px;padding-top:20px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.footer-left{font-size:13px;color:var(--muted);}
+.footer-left strong{color:var(--text);}
+.footer-right{font-size:12px;color:var(--hint);}
+
+@media(max-width:640px){.wf-row{grid-template-columns:120px 1fr 60px;}.kpi-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="dash-header">
+    <div>
+      <div class="dash-title-row">
+        <div class="brand-mark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="dash-title">Dashboard</span>
+      </div>
+      <p class="dash-sub">Cross-tool summary — reads your locally saved data from all 11 tools.</p>
+    </div>
+    <a href="index.html" class="btn-back">← All tools</a>
+  </header>
+
+  <div id="dashContent"></div>
+
+  <footer>
+    <div class="footer-left">Built by <strong>Sam Pellerito</strong> — MisEnPlace</div>
+    <div class="footer-right">Data stored locally in your browser</div>
+  </footer>
+</div>
+
+<script>
+// ── Tool registry ────────────────────────────────────
+const TOOLS = [
+  { key:'cpg_export_cogs-builder',       name:'COGS Builder',          href:'01-cogs-per-unit-builder/cogs-per-unit-builder.html',
+    kpis:[{label:'Total COGS/unit', field:'totalCOGS', fmt:'$2'},{label:'Gross margin', field:'grossMarginPct', fmt:'%1'}] },
+  { key:'cpg_export_cost-variance',      name:'Cost Variance',          href:'02-standard-vs-actual-cost-variance/standard-vs-actual-cost-variance.html',
+    kpis:[{label:'Total variance', field:'totalVariance', fmt:'$0'},{label:'Variance %', field:'variancePct', fmt:'%1'}] },
+  { key:'cpg_export_make-vs-buy',        name:'Make vs Buy',            href:'03-make-vs-buy-decision/make-vs-buy-decision.html',
+    kpis:[{label:'Crossover volume', field:'crossoverVol', fmt:'#0'},{label:'Cost savings/unit', field:'costDiff', fmt:'$2'}] },
+  { key:'cpg_export_moq-optimizer',      name:'MOQ Optimizer',          href:'04-moq-run-size-optimizer/moq-run-size-optimizer.html',
+    kpis:[{label:'Optimal run size', field:'optimalRun', fmt:'#0'},{label:'Total annual cost', field:'totalAnnualCost', fmt:'$0'}] },
+  { key:'cpg_export_demand-planning',    name:'Demand Planning',        href:'05-demand-planning-safety-stock/demand-planning-safety-stock.html',
+    kpis:[{label:'Safety stock', field:'safetyStock', fmt:'#0'},{label:'Reorder point', field:'rop', fmt:'#0'}] },
+  { key:'cpg_export_cash-to-cash',       name:'Cash-to-Cash',           href:'06-cash-to-cash-cycle/cash-to-cash-cycle.html',
+    kpis:[{label:'C2C cycle', field:'c2cDays', fmt:'d1'},{label:'Working capital', field:'workingCapital', fmt:'$0'}] },
+  { key:'cpg_export_stockout-overstock', name:'Stockout vs Overstock',  href:'07-stockout-vs-overstock/stockout-vs-overstock-cost.html',
+    kpis:[{label:'Net risk cost', field:'netCost', fmt:'$0'},{label:'Optimal service level', field:'optimalSL', fmt:'%1'}] },
+  { key:'cpg_export_landed-cost',        name:'Landed Cost',            href:'08-landed-cost-freight/landed-cost-freight.html',
+    kpis:[{label:'Landed cost/unit', field:'landedCostUnit', fmt:'$2'},{label:'Duty % of landed', field:'dutyPct', fmt:'%1'}] },
+  { key:'cpg_export_trade-spend',        name:'Trade Spend',            href:'09-trade-spend-net-revenue/trade-spend-net-revenue.html',
+    kpis:[{label:'Net revenue', field:'netRevenue', fmt:'$0'},{label:'Net margin', field:'netMarginPct', fmt:'%1'}] },
+  { key:'cpg_export_channel-waterfall',  name:'Channel Waterfall',      href:'10-channel-margin-waterfall/channel-margin-waterfall.html',
+    kpis:[{label:'Best channel margin', field:'bestMarginPct', fmt:'%1'},{label:'Spread (best–worst)', field:'marginSpread', fmt:'pp1'}] },
+  { key:'cpg_export_ops-impact',         name:'Operational Impact',     href:'11-operational-impact-calculator/operational-impact-calculator.html',
+    kpis:[{label:'Revenue lift', field:'deltaR', fmt:'$0'},{label:'New customers', field:'deltaC', fmt:'#0'}] },
+];
+
+// ── Format helpers ───────────────────────────────────
+function fmt(v, f){
+  const n = parseFloat(v);
+  if(v == null || v === '' || isNaN(n)) return null;
+  if(f.startsWith('$')) return '$' + n.toLocaleString('en-US',{maximumFractionDigits:parseInt(f[1]||0)});
+  if(f.startsWith('%')) return n.toFixed(parseInt(f[1]||1)) + '%';
+  if(f.startsWith('pp')) return n.toFixed(parseInt(f[2]||1)) + 'pp';
+  if(f.startsWith('d')) return n.toFixed(parseInt(f[1]||1)) + ' days';
+  return n.toLocaleString('en-US',{maximumFractionDigits:parseInt(f[1]||0)});
+}
+
+function timeAgo(iso){
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if(diff < 3600) return Math.round(diff/60) + 'm ago';
+  if(diff < 86400) return Math.round(diff/3600) + 'h ago';
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+// ── Load all data ─────────────────────────────────────
+const loaded = [];
+TOOLS.forEach(tool => {
+  try {
+    const raw = localStorage.getItem(tool.key);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    loaded.push({ tool, data });
+  } catch(e){}
+});
+
+// ── Render ────────────────────────────────────────────
+const container = document.getElementById('dashContent');
+
+if(!loaded.length){
+  container.innerHTML = `
+    <div class="empty-state">
+      <p style="font-size:32px;margin-bottom:12px">📋</p>
+      <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">No saved data yet</p>
+      <p>Use any tool and click <strong>Save to Hub</strong> to see your data here.</p>
+      <p style="margin-top:16px"><a href="index.html">← Go to tools</a></p>
+    </div>`;
+} else {
+
+  let html = '';
+
+  // ── KPI grid ─────────────────────────────────────
+  html += `<p class="section-title">Key metrics — ${loaded.length} tool${loaded.length>1?'s':''} with saved data</p>`;
+  html += `<div class="kpi-grid">`;
+  loaded.forEach(({tool, data}) => {
+    tool.kpis.forEach(kpi => {
+      const val = fmt(data[kpi.field], kpi.fmt);
+      if(!val) return;
+      const n = parseFloat(data[kpi.field]);
+      const valClass = !isNaN(n) && n < 0 ? 'danger' : (kpi.fmt.startsWith('$') || kpi.fmt.startsWith('%') ? 'positive' : '');
+      const saved = data.savedAt || data.timestamp;
+      html += `<div class="kpi-card">
+        <p class="kpi-tool">${tool.name}</p>
+        <p class="kpi-label">${kpi.label}</p>
+        <p class="kpi-val ${valClass}">${val}</p>
+        ${saved ? `<p class="kpi-sub">${timeAgo(saved)}</p>` : ''}
+        <a href="${tool.href}" class="kpi-link">Open tool →</a>
+      </div>`;
+    });
+  });
+  html += `</div>`;
+
+  // ── Margin waterfall ──────────────────────────────
+  const cogs = loaded.find(d => d.tool.key === 'cpg_export_cogs-builder');
+  const landed = loaded.find(d => d.tool.key === 'cpg_export_landed-cost');
+  const trade = loaded.find(d => d.tool.key === 'cpg_export_trade-spend');
+  const channel = loaded.find(d => d.tool.key === 'cpg_export_channel-waterfall');
+
+  const wfItems = [];
+  if(cogs){
+    const gm = parseFloat(cogs.data.grossMarginPct);
+    if(!isNaN(gm)) wfItems.push({label:'Gross margin (COGS)', val:gm, color:'var(--teal)'});
+  }
+  if(landed){
+    const lcUnit = parseFloat(landed.data.landedCostUnit);
+    const msrp = parseFloat(landed.data.sellingPrice || landed.data.msrp);
+    if(!isNaN(lcUnit) && !isNaN(msrp) && msrp > 0){
+      const landedGM = ((msrp - lcUnit)/msrp)*100;
+      wfItems.push({label:'After landed cost', val:landedGM, color:'var(--accent)'});
+    }
+  }
+  if(trade){
+    const nm = parseFloat(trade.data.netMarginPct);
+    if(!isNaN(nm)) wfItems.push({label:'After trade spend', val:nm, color:'var(--amber)'});
+  }
+  if(channel){
+    const bm = parseFloat(channel.data.bestMarginPct);
+    if(!isNaN(bm)) wfItems.push({label:'Best channel margin', val:bm, color:'var(--purple)'});
+  }
+
+  if(wfItems.length >= 2){
+    const maxVal = Math.max(...wfItems.map(w => Math.abs(w.val)), 1);
+    html += `<p class="section-title">Margin waterfall</p>
+    <div class="waterfall-wrap">
+      <p class="waterfall-note">Each bar shows margin at a different stage. Data pulled from your most recently saved tool results.</p>
+      <div class="waterfall-bar-group">`;
+    wfItems.forEach((w, i) => {
+      const pct = Math.max(0, Math.min(100, (w.val / maxVal) * 100));
+      const valClass = w.val < 0 ? 'danger' : '';
+      html += `<div class="wf-row">
+        <span class="wf-label">${w.label}</span>
+        <div class="wf-track"><div class="wf-fill" style="width:${pct}%;background:${w.color};opacity:0.85;"></div></div>
+        <span class="wf-val ${valClass}">${w.val.toFixed(1)}%</span>
+      </div>`;
+      if(i < wfItems.length - 1) html += `<hr class="wf-divider"/>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // ── Operational Impact scenarios ──────────────────
+  const opsHistory = (() => {
+    try { return JSON.parse(localStorage.getItem('ops_impact_history') || '[]'); } catch(e){ return []; }
+  })();
+
+  if(opsHistory.length){
+    html += `<p class="section-title">Saved operational impact scenarios (${opsHistory.length})</p>
+    <div class="scenarios-wrap">
+      <table class="scenarios-table">
+        <thead><tr>
+          <th style="text-align:left">Date</th>
+          <th>Revenue lift</th>
+          <th>New customers</th>
+          <th>New avg CPA</th>
+          <th>Contribution</th>
+          <th style="text-align:left">Notes</th>
+        </tr></thead>
+        <tbody>`;
+    opsHistory.slice().reverse().slice(0,10).forEach(r => {
+      html += `<tr>
+        <td style="text-align:left;color:var(--hint)">${new Date(r.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+        <td class="positive">+$${Math.round(r.deltaR).toLocaleString()}</td>
+        <td>+${Math.round(r.deltaC).toLocaleString()}</td>
+        <td>$${(r.newAvgCPA||0).toFixed(2)}</td>
+        <td class="positive">+$${Math.round(r.deltaContrib||0).toLocaleString()}</td>
+        <td style="text-align:left;color:var(--muted);font-size:12px">${r.notes||'—'}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // ── Tool status ───────────────────────────────────
+  html += `<p class="section-title">Tool status</p><div class="status-grid">`;
+  TOOLS.forEach(tool => {
+    const hasData = loaded.some(l => l.tool.key === tool.key);
+    const d = loaded.find(l => l.tool.key === tool.key);
+    const saved = d ? (d.data.savedAt || d.data.timestamp) : null;
+    html += `<div class="status-card">
+      <div class="status-dot ${hasData ? 'saved' : 'empty'}"></div>
+      <div class="status-info">
+        <p class="status-name">${tool.name}</p>
+        <p class="status-meta">${hasData ? (saved ? timeAgo(saved) : 'Data saved') : 'No saved data'}</p>
+      </div>
+      <a href="${tool.href}" class="status-link">Open →</a>
+    </div>`;
+  });
+  html += `</div>`;
+
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>

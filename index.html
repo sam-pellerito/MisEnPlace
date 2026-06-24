@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MisEnPlace — CPG Operations Tools</title>
+<meta name="description" content="Everything in its place. A suite of CPG operations calculators covering COGS, supply chain, and trade economics."/>
+<style>
+:root{
+  --bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.1);
+  --text:#1A1612;--muted:#7A7068;--hint:#A09890;
+  --accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--amber:#BA7517;--purple:#7F77DD;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+a{color:inherit;text-decoration:none;}
+
+/* ── Layout ── */
+.page{max-width:1040px;margin:0 auto;padding:40px 24px 80px;}
+
+/* ── Header ── */
+.site-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:48px;padding-bottom:28px;border-bottom:0.5px solid var(--border);}
+.brand{display:flex;flex-direction:column;gap:6px;}
+.brand-lockup{display:flex;align-items:center;gap:12px;}
+.brand-mark{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-mark svg{color:#fff;}
+.brand-name{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.02em;}
+.brand-tagline{font-size:13px;color:var(--muted);max-width:440px;line-height:1.5;}
+.header-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.btn-hub{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:opacity .15s;}
+.btn-hub:hover{opacity:.88;}
+.btn-dash{display:inline-flex;align-items:center;gap:7px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:border-color .15s;}
+.btn-dash:hover{border-color:var(--accent);}
+
+/* ── Recent strip ── */
+.recent-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:36px;display:none;}
+.recent-bar.has-data{display:block;}
+.recent-label{font-size:10.5px;font-weight:700;color:var(--hint);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px;}
+.recent-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.recent-chip{background:var(--surface);border-radius:8px;padding:8px 14px;font-size:12px;display:flex;flex-direction:column;gap:2px;cursor:pointer;transition:background .15s;border:1px solid transparent;}
+.recent-chip:hover{border-color:var(--accent);background:rgba(155,94,40,0.06);}
+.chip-tool{font-weight:600;color:var(--text);}
+.chip-val{color:var(--teal);font-weight:600;}
+.chip-date{color:var(--hint);font-size:10.5px;}
+
+/* ── Category sections ── */
+.cat-section{margin-bottom:40px;}
+.cat-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cat-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);}
+.cat-count{font-size:11px;color:var(--hint);margin-left:auto;}
+
+/* ── Tool cards ── */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.tool-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,box-shadow .15s;position:relative;}
+.tool-card:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(155,94,40,0.08);}
+.tool-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.tool-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
+.tool-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.badge-cogs{background:rgba(155,94,40,0.1);color:#7A3F10;}
+.badge-supply{background:rgba(45,140,90,0.1);color:#1A6640;}
+.badge-trade{background:rgba(127,119,221,0.1);color:#4A44AA;}
+.tool-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;}
+.tool-desc{font-size:12.5px;color:var(--muted);line-height:1.5;flex:1;}
+.tool-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+.tool-last{font-size:11px;color:var(--hint);}
+.tool-last.has-data{color:var(--teal);}
+.tool-arrow{font-size:13px;color:var(--hint);transition:color .15s;}
+.tool-card:hover .tool-arrow{color:var(--accent);}
+
+/* ── Footer ── */
+footer{margin-top:60px;padding-top:20px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.footer-left{font-size:13px;color:var(--muted);}
+.footer-left strong{color:var(--text);}
+.footer-right{font-size:12px;color:var(--hint);}
+
+@media(max-width:640px){
+  .site-header{flex-direction:column;}
+  .header-actions{width:100%;}
+  .btn-hub,.btn-dash{flex:1;justify-content:center;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-lockup">
+        <div class="brand-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="brand-name">MisEnPlace</span>
+      </div>
+      <p class="brand-tagline">Everything in its place — a suite of CPG operations tools covering cost, supply chain, and trade economics.</p>
+    </div>
+    <div class="header-actions">
+      <a href="dashboard.html" class="btn-dash">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="export-hub.html" class="btn-hub">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Export Hub
+      </a>
+    </div>
+  </header>
+
+  <!-- Recently saved strip -->
+  <div class="recent-bar" id="recentBar">
+    <p class="recent-label">Recently saved</p>
+    <div class="recent-grid" id="recentGrid"></div>
+  </div>
+
+  <!-- Category: COGS & Cost -->
+  <div class="cat-section">
+    <div class="cat-header">
+      <div class="cat-dot" style="background:var(--accent)"></div>
+      <span class="cat-title">COGS &amp; Cost</span>
+      <span class="cat-count">4 tools</span>
+    </div>
+    <div class="tool-grid">
+
+      <a href="01-cogs-per-unit-builder/cogs-per-unit-builder.html" class="tool-card" data-key="cpg_export_cogs-builder">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(155,94,40,0.1);">🏗️</div>
+          <span class="tool-badge badge-cogs">COGS</span>
+        </div>
+        <p class="tool-name">COGS Per Unit Builder</p>
+        <p class="tool-desc">Build a complete per-unit cost breakdown — ingredients, packaging, labor, overhead, and co-man fees — to land on a clean product COGS.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-cogs-builder">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="02-standard-vs-actual-cost-variance/standard-vs-actual-cost-variance.html" class="tool-card" data-key="cpg_export_cost-variance">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(155,94,40,0.1);">📊</div>
+          <span class="tool-badge badge-cogs">COGS</span>
+        </div>
+        <p class="tool-name">Standard vs Actual Cost Variance</p>
+        <p class="tool-desc">Compare standard and actual production costs across materials, labor, and overhead to identify where variances are hitting margin.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-cost-variance">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="03-make-vs-buy-decision/make-vs-buy-decision.html" class="tool-card" data-key="cpg_export_make-vs-buy">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(155,94,40,0.1);">⚖️</div>
+          <span class="tool-badge badge-cogs">COGS</span>
+        </div>
+        <p class="tool-name">Make vs Buy Decision</p>
+        <p class="tool-desc">Model the crossover volume where in-house production beats co-manufacturing on a fully-loaded cost basis, including capital and overhead.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-make-vs-buy">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="08-landed-cost-freight/landed-cost-freight.html" class="tool-card" data-key="cpg_export_landed-cost">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(155,94,40,0.1);">🚢</div>
+          <span class="tool-badge badge-cogs">COGS</span>
+        </div>
+        <p class="tool-name">Landed Cost &amp; Freight</p>
+        <p class="tool-desc">Calculate true landed cost per unit including freight, duties, brokerage, 3PL, and compliance fees across Incoterms.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-landed-cost">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- Category: Supply Chain -->
+  <div class="cat-section">
+    <div class="cat-header">
+      <div class="cat-dot" style="background:var(--teal)"></div>
+      <span class="cat-title">Supply Chain</span>
+      <span class="cat-count">4 tools</span>
+    </div>
+    <div class="tool-grid">
+
+      <a href="04-moq-run-size-optimizer/moq-run-size-optimizer.html" class="tool-card" data-key="cpg_export_moq-optimizer">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(45,140,90,0.1);">📦</div>
+          <span class="tool-badge badge-supply">Supply Chain</span>
+        </div>
+        <p class="tool-name">MOQ &amp; Run Size Optimizer</p>
+        <p class="tool-desc">Find the optimal production run size that minimizes total cost across setup, carrying, and stockout risk against your supplier's MOQ.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-moq-optimizer">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="05-demand-planning-safety-stock/demand-planning-safety-stock.html" class="tool-card" data-key="cpg_export_demand-planning">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(45,140,90,0.1);">📈</div>
+          <span class="tool-badge badge-supply">Supply Chain</span>
+        </div>
+        <p class="tool-name">Demand Planning &amp; Safety Stock</p>
+        <p class="tool-desc">Calculate safety stock, reorder points, and days of cover based on demand variability and supplier lead times.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-demand-planning">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="06-cash-to-cash-cycle/cash-to-cash-cycle.html" class="tool-card" data-key="cpg_export_cash-to-cash">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(45,140,90,0.1);">💵</div>
+          <span class="tool-badge badge-supply">Supply Chain</span>
+        </div>
+        <p class="tool-name">Cash-to-Cash Cycle</p>
+        <p class="tool-desc">Measure how long cash is tied up between paying suppliers and collecting from customers — and model the working capital impact of improvements.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-cash-to-cash">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="07-stockout-vs-overstock/stockout-vs-overstock-cost.html" class="tool-card" data-key="cpg_export_stockout-overstock">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(45,140,90,0.1);">⚠️</div>
+          <span class="tool-badge badge-supply">Supply Chain</span>
+        </div>
+        <p class="tool-name">Stockout vs Overstock Cost</p>
+        <p class="tool-desc">Quantify the true cost of stocking out versus carrying excess inventory, and find the optimal service level for your business.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-stockout-overstock">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- Category: Trade Economics -->
+  <div class="cat-section">
+    <div class="cat-header">
+      <div class="cat-dot" style="background:var(--purple)"></div>
+      <span class="cat-title">Trade Economics</span>
+      <span class="cat-count">3 tools</span>
+    </div>
+    <div class="tool-grid">
+
+      <a href="09-trade-spend-net-revenue/trade-spend-net-revenue.html" class="tool-card" data-key="cpg_export_trade-spend">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(127,119,221,0.1);">💸</div>
+          <span class="tool-badge badge-trade">Trade</span>
+        </div>
+        <p class="tool-name">Trade Spend &amp; Net Revenue</p>
+        <p class="tool-desc">Calculate true net revenue and gross margin after trade spend, platform fees, fulfillment, and distributor margins across channels.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-trade-spend">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="10-channel-margin-waterfall/channel-margin-waterfall.html" class="tool-card" data-key="cpg_export_channel-waterfall">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(127,119,221,0.1);">🏪</div>
+          <span class="tool-badge badge-trade">Trade</span>
+        </div>
+        <p class="tool-name">Channel Margin Waterfall</p>
+        <p class="tool-desc">Compare true gross margin across retail, DTC, Amazon, and foodservice channels side-by-side to prioritize channel investment.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-channel-waterfall">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+      <a href="11-operational-impact-calculator/operational-impact-calculator.html" class="tool-card" data-key="cpg_export_ops-impact">
+        <div class="tool-card-top">
+          <div class="tool-icon" style="background:rgba(127,119,221,0.1);">🎯</div>
+          <span class="tool-badge badge-trade">Trade</span>
+        </div>
+        <p class="tool-name">Operational Impact Calculator</p>
+        <p class="tool-desc">Model how reinvesting operational savings into marketing affects customer acquisition cost, revenue, and blended gross margin.</p>
+        <div class="tool-footer">
+          <span class="tool-last" id="last-ops-impact">—</span>
+          <span class="tool-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-left">Built by <strong>Sam Pellerito</strong> — MisEnPlace</div>
+    <div class="footer-right">11 tools · CPG operations</div>
+  </footer>
+
+</div>
+
+<script>
+// ── Recently saved strip ──────────────────────────────
+const TOOL_META = {
+  'cpg_export_cogs-builder':       { name:'COGS Builder',           href:'01-cogs-per-unit-builder/cogs-per-unit-builder.html',          valKey:'totalCOGS',    fmt:'$' },
+  'cpg_export_cost-variance':      { name:'Cost Variance',           href:'02-standard-vs-actual-cost-variance/standard-vs-actual-cost-variance.html', valKey:'totalVariance', fmt:'$' },
+  'cpg_export_make-vs-buy':        { name:'Make vs Buy',             href:'03-make-vs-buy-decision/make-vs-buy-decision.html',            valKey:'crossoverVol',  fmt:'#' },
+  'cpg_export_moq-optimizer':      { name:'MOQ Optimizer',           href:'04-moq-run-size-optimizer/moq-run-size-optimizer.html',        valKey:'optimalRun',    fmt:'#' },
+  'cpg_export_demand-planning':    { name:'Demand Planning',         href:'05-demand-planning-safety-stock/demand-planning-safety-stock.html', valKey:'safetyStock', fmt:'#' },
+  'cpg_export_cash-to-cash':       { name:'Cash-to-Cash',            href:'06-cash-to-cash-cycle/cash-to-cash-cycle.html',               valKey:'c2cDays',       fmt:'d' },
+  'cpg_export_stockout-overstock': { name:'Stockout vs Overstock',   href:'07-stockout-vs-overstock/stockout-vs-overstock-cost.html',    valKey:'netCost',       fmt:'$' },
+  'cpg_export_landed-cost':        { name:'Landed Cost',             href:'08-landed-cost-freight/landed-cost-freight.html',             valKey:'landedCostUnit',fmt:'$' },
+  'cpg_export_trade-spend':        { name:'Trade Spend',             href:'09-trade-spend-net-revenue/trade-spend-net-revenue.html',     valKey:'netRevenue',    fmt:'$' },
+  'cpg_export_channel-waterfall':  { name:'Channel Waterfall',       href:'10-channel-margin-waterfall/channel-margin-waterfall.html',   valKey:'bestMarginPct', fmt:'%' },
+  'cpg_export_ops-impact':         { name:'Operational Impact',      href:'11-operational-impact-calculator/operational-impact-calculator.html', valKey:'deltaR', fmt:'$' },
+};
+
+const LAST_KEYS = {
+  'cpg_export_cogs-builder': 'last-cogs-builder',
+  'cpg_export_cost-variance': 'last-cost-variance',
+  'cpg_export_make-vs-buy': 'last-make-vs-buy',
+  'cpg_export_moq-optimizer': 'last-moq-optimizer',
+  'cpg_export_demand-planning': 'last-demand-planning',
+  'cpg_export_cash-to-cash': 'last-cash-to-cash',
+  'cpg_export_stockout-overstock': 'last-stockout-overstock',
+  'cpg_export_landed-cost': 'last-landed-cost',
+  'cpg_export_trade-spend': 'last-trade-spend',
+  'cpg_export_channel-waterfall': 'last-channel-waterfall',
+  'cpg_export_ops-impact': 'last-ops-impact',
+};
+
+function fmtVal(v, fmt){
+  if(v == null || v === '') return null;
+  const n = parseFloat(v);
+  if(isNaN(n)) return null;
+  if(fmt === '$') return '$' + n.toLocaleString('en-US', {maximumFractionDigits:0});
+  if(fmt === '%') return n.toFixed(1) + '%';
+  if(fmt === 'd') return n.toFixed(1) + ' days';
+  return n.toLocaleString('en-US', {maximumFractionDigits:0}) + ' units';
+}
+
+function timeAgo(iso){
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if(diff < 3600) return Math.round(diff/60) + 'm ago';
+  if(diff < 86400) return Math.round(diff/3600) + 'h ago';
+  return Math.round(diff/86400) + 'd ago';
+}
+
+const recentItems = [];
+
+Object.entries(TOOL_META).forEach(([key, meta]) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    const valFormatted = fmtVal(data[meta.valKey], meta.fmt);
+    const savedAt = data.savedAt || data.timestamp || null;
+
+    // Update card footer
+    const el = document.getElementById(LAST_KEYS[key]);
+    if(el && valFormatted){
+      el.textContent = valFormatted + (savedAt ? ' · ' + timeAgo(savedAt) : '');
+      el.classList.add('has-data');
+    }
+
+    if(savedAt) recentItems.push({ key, meta, valFormatted, savedAt, data });
+  } catch(e){}
+});
+
+// Sort by most recent and show up to 6
+recentItems.sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
+if(recentItems.length){
+  const bar = document.getElementById('recentBar');
+  const grid = document.getElementById('recentGrid');
+  bar.classList.add('has-data');
+  recentItems.slice(0,6).forEach(item => {
+    const chip = document.createElement('a');
+    chip.href = item.meta.href;
+    chip.className = 'recent-chip';
+    chip.innerHTML = `<span class="chip-tool">${item.meta.name}</span>
+      ${item.valFormatted ? `<span class="chip-val">${item.valFormatted}</span>` : ''}
+      <span class="chip-date">${timeAgo(item.savedAt)}</span>`;
+    grid.appendChild(chip);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Export Hub — MisEnPlace — MisEnPlace</title>
+<style>
+:root{--bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.1);--text:#1A1612;--muted:#7A7068;--hint:#A09890;--accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--purple:#7F77DD;--amber:#BA7517;--navy:#9B5E28;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+.page{max-width:960px;margin:0 auto;padding:32px 20px 60px;}
+header{margin-bottom:32px;padding-bottom:24px;border-bottom:0.5px solid var(--border);}
+.header-tag{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+h1{font-size:24px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.header-desc{font-size:14px;color:var(--muted);max-width:620px;line-height:1.6;}
+.byline{font-size:13px;color:var(--muted);margin-top:10px;}
+.byline strong{color:var(--text);}
+.section-title{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin:28px 0 12px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--muted);font-weight:500;}
+.field input{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:var(--card);outline:none;transition:border-color .15s;}
+.field input:focus{border-color:var(--accent);}
+.divider{border:none;border-top:0.5px solid var(--border);margin:24px 0;}
+/* Tool cards */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:8px;}
+.tool-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all .15s;position:relative;}
+.tool-card:hover{border-color:rgba(24,95,165,0.3);}
+.tool-card.selected{border-color:var(--accent);background:rgba(24,95,165,0.04);}
+.tool-card.no-data{opacity:0.5;cursor:default;}
+.tool-card.no-data:hover{border-color:var(--border);}
+.tool-check{position:absolute;top:14px;right:14px;width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.tool-card.selected .tool-check{background:var(--accent);border-color:var(--accent);}
+.tool-check svg{display:none;}
+.tool-card.selected .tool-check svg{display:block;}
+.tool-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;padding-right:24px;}
+.tool-status{font-size:11px;margin-top:6px;display:flex;align-items:center;gap:5px;}
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.status-dot.saved{background:var(--teal);}
+.status-dot.empty{background:var(--hint);}
+.tool-saved-time{font-size:11px;color:var(--hint);}
+.tool-metrics-preview{margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;}
+.mini-metric{font-size:11px;background:var(--surface);border-radius:6px;padding:3px 8px;color:var(--muted);}
+.mini-metric strong{color:var(--text);}
+/* Export actions */
+.export-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-top:24px;}
+.export-bar-left{flex:1;min-width:160px;}
+.export-bar-left p{font-size:13px;font-weight:600;color:var(--text);}
+.export-bar-left span{font-size:12px;color:var(--muted);}
+.btn{border:none;border-radius:9px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;display:inline-flex;align-items:center;gap:8px;}
+.btn:hover{opacity:.85;}
+.btn-excel{background:#1D6F42;color:#fff;}
+.btn-pdf{background:var(--accent);color:#fff;}
+.btn-refresh{background:var(--surface);color:var(--muted);font-size:13px;padding:9px 16px;}
+.btn-clear-all{background:rgba(226,75,74,0.08);color:var(--red);border:1px solid rgba(226,75,74,0.2);border-radius:9px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-clear-all:hover{background:rgba(226,75,74,0.14);}
+.btn-clear-all.cleared{background:rgba(29,158,117,0.1);color:var(--teal);border-color:rgba(29,158,117,0.3);}
+/* Per-card clear button */
+.card-clear-btn{display:none;position:absolute;top:10px;right:10px;background:rgba(226,75,74,0.08);border:1px solid rgba(226,75,74,0.15);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:var(--red);cursor:pointer;transition:all .15s;}
+.card-clear-btn:hover{background:rgba(226,75,74,0.18);}
+.tool-card:hover .card-clear-btn{display:block;}
+.tool-card{position:relative;}
+/* Select all row */
+.select-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.select-row button{background:none;border:none;font-size:12px;color:var(--accent);cursor:pointer;padding:0;font-weight:500;}
+.select-row span{font-size:12px;color:var(--hint);}
+/* Empty state */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-state p{font-size:14px;margin-bottom:6px;}
+.empty-state small{font-size:12px;color:var(--hint);}
+/* ── Print / PDF styles ──────────────────────── */
+@media print {
+  @page{size:letter;margin:0;}
+  body{background:#fff;}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  .page{padding:0;max-width:100%;}
+  .no-print{display:none!important;}
+  .print-only{display:block!important;}
+  .rpt-section{page-break-inside:avoid;}
+  .rpt-break{page-break-before:always;}
+}
+.print-only{display:none;}
+
+/* ── PDF Report — exact match to sample design ── */
+.rpt{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;font-size:14px;line-height:1.6;color:var(--text);background:var(--card);}
+/* Cover */
+.rpt-cover{background:#0c1f3a;padding:52px 52px 44px;position:relative;overflow:hidden;}
+.rpt-cover::before{content:'';position:absolute;top:-60px;right:-80px;width:340px;height:340px;border-radius:50%;background:rgba(255,255,255,0.03);}
+.rpt-cover::after{content:'';position:absolute;bottom:-40px;left:60px;width:200px;height:200px;border-radius:50%;background:rgba(24,95,165,0.15);}
+.rpt-cover-tag{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:14px;}
+.rpt-cover-title{font-size:32px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:8px;}
+.rpt-cover-sub{font-size:15px;color:rgba(255,255,255,0.55);margin-bottom:36px;max-width:500px;line-height:1.5;}
+.rpt-cover-meta{display:flex;gap:32px;flex-wrap:wrap;margin-bottom:32px;position:relative;z-index:1;}
+.rpt-cover-meta-item label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:4px;}
+.rpt-cover-meta-item span{font-size:16px;font-weight:700;color:#fff;}
+.rpt-cover-rule{border:none;border-top:1px solid rgba(255,255,255,0.1);margin-bottom:28px;}
+.rpt-cover-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative;z-index:1;}
+.rpt-cover-kpi{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px;}
+.rpt-cover-kpi-label{font-size:9.5px;color:rgba(255,255,255,0.45);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+.rpt-cover-kpi-val{font-size:20px;font-weight:700;color:#fff;margin-bottom:2px;}
+.rpt-cover-kpi-val.teal{color:#4ECCA3;}
+.rpt-cover-kpi-val.amber{color:#F0B429;}
+.rpt-cover-kpi-val.bad{color:#FF6B6B;}
+.rpt-cover-kpi-sub{font-size:10.5px;color:rgba(255,255,255,0.38);}
+.rpt-claude-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(217,119,87,0.15);border:1px solid rgba(217,119,87,0.3);border-radius:8px;padding:8px 14px;margin-top:28px;position:relative;z-index:1;}
+.rpt-claude-text{font-size:11px;font-weight:700;color:rgba(217,119,87,0.9);}
+/* Section group */
+.rpt-group{padding:10px 52px;background:var(--surface);font-size:9.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.12em;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+/* Section */
+.rpt-section{padding:40px 52px;}
+.rpt-section+.rpt-section{border-top:1px solid var(--border);}
+.rpt-hd{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.rpt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(24,95,165,0.08);}
+.rpt-title{font-size:17px;font-weight:700;color:var(--text);}
+.rpt-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+/* KPI row */
+.rpt-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;}
+.rpt-kpi{background:var(--surface);border-radius:10px;padding:14px 16px;}
+.rpt-kpi-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.rpt-kpi-val{font-size:21px;font-weight:700;color:var(--text);}
+.rpt-kpi-val.good{color:var(--teal);}
+.rpt-kpi-val.bad{color:var(--red);}
+.rpt-kpi-val.warn{color:var(--amber);}
+.rpt-kpi-val.blue{color:var(--accent);}
+.rpt-kpi-sub{font-size:11px;color:var(--hint);margin-top:3px;}
+/* Table */
+.rpt-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px;}
+.rpt-table th{font-size:9.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);text-align:right;white-space:nowrap;}
+.rpt-table th:first-child{text-align:left;}
+.rpt-table td{padding:9px 12px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--muted);}
+.rpt-table td:first-child{text-align:left;color:var(--text);font-weight:500;}
+.rpt-table tr:last-child td{border-bottom:none;}
+.rpt-table tr.subtotal td{font-weight:700;color:var(--text);background:rgba(24,95,165,0.03);border-top:1px solid var(--border);}
+.rpt-table tr.total td{font-weight:700;color:var(--teal);border-top:1px solid var(--border);}
+/* Bar chart */
+.rpt-bar-wrap{margin-bottom:20px;}
+.rpt-bar-track{height:28px;border-radius:6px;overflow:hidden;display:flex;margin-bottom:8px;}
+.rpt-bar-seg{height:100%;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;min-width:0;}
+.rpt-bar-legend{display:flex;gap:14px;flex-wrap:wrap;}
+.rpt-bar-legend span{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.rpt-leg{width:11px;height:11px;border-radius:3px;flex-shrink:0;display:inline-block;}
+/* CCC diagram */
+.rpt-ccc-formula{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:16px;flex-wrap:wrap;}
+.rpt-ccc{display:flex;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;}
+.rpt-ccc-seg{flex:1;padding:16px 12px;text-align:center;min-width:0;}
+.rpt-ccc-lbl{font-size:9.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+.rpt-ccc-val{font-size:20px;font-weight:700;margin-bottom:3px;}
+.rpt-ccc-sub{font-size:10.5px;color:var(--hint);}
+/* Compare grid */
+.rpt-cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.rpt-cmp-card{border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+.rpt-cmp-card.winner{border-color:var(--teal);background:rgba(29,158,117,0.08);}
+.rpt-cmp-head{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.rpt-cmp-head.win{color:var(--teal);}
+.rpt-cmp-big{font-size:28px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.rpt-cmp-card.winner .rpt-cmp-big{color:var(--teal);}
+.rpt-cmp-sub{font-size:11.5px;color:var(--muted);margin-bottom:12px;}
+.rpt-cmp-row{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:0.5px solid var(--border);}
+.rpt-cmp-row:last-child{border:none;}
+.rpt-cmp-row span:first-child{color:var(--muted);}
+/* Channel bars */
+.rpt-ch-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.rpt-ch-label{font-size:12px;font-weight:600;color:var(--text);width:96px;flex-shrink:0;}
+.rpt-ch-track{flex:1;height:28px;background:var(--surface);border-radius:6px;overflow:hidden;display:flex;}
+.rpt-ch-bar{height:100%;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;}
+.rpt-ch-pct{font-size:13px;font-weight:700;width:52px;text-align:right;flex-shrink:0;}
+/* Insight */
+.rpt-insight{border-left:3px solid var(--accent);background:rgba(24,95,165,0.04);border-radius:0 8px 8px 0;padding:12px 16px;font-size:12.5px;color:var(--muted);margin-top:16px;line-height:1.6;}
+.rpt-insight strong{color:var(--text);}
+.rpt-insight.good{border-color:var(--teal);background:rgba(29,158,117,0.08);}
+.rpt-insight.bad{border-color:var(--red);background:rgba(226,75,74,0.08);}
+.rpt-insight.warn{border-color:var(--amber);background:rgba(186,117,23,0.08);}
+/* Footer */
+.rpt-footer{background:#0c1f3a;padding:24px 52px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.rpt-footer-left{font-size:11.5px;color:rgba(255,255,255,0.45);}
+.rpt-footer-left strong{color:rgba(255,255,255,0.8);}
+.rpt-footer-badge{display:flex;align-items:center;gap:7px;}
+.rpt-footer-badge-text{font-size:11px;font-weight:700;color:rgba(217,119,87,0.8);}
+footer{margin-top:48px;padding-top:20px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.footer-left{font-size:13px;color:var(--muted);}
+.footer-left strong{color:var(--text);}
+.footer-right a{color:var(--hint);text-decoration:none;font-size:12px;}
+.footer-right a:hover{color:var(--accent);}
+@media(max-width:600px){.field-row{grid-template-columns:1fr;}.export-bar{flex-direction:column;align-items:flex-start;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ── Screen UI (hidden on print) ─────────── -->
+<div class="no-print">
+
+<nav style="margin-bottom:20px;">
+  <a href="index.html" style="font-size:13px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+    <span style="font-size:16px;line-height:1;">←</span> All tools
+  </a>
+</nav>
+
+<header>
+  <p class="header-tag">MisEnPlace</p>
+  <h1>Export Hub</h1>
+  <p class="header-desc">Select the tools you've saved and export everything to a formatted Excel workbook or a styled PDF report. Use the "Save for Export" button on any tool page to capture your results here.</p>
+  <p class="byline">Built by <strong>Sam Pellerito</strong></p>
+</header>
+
+<p class="section-title">Report details</p>
+<div class="field-row">
+  <div class="field">
+    <label>Brand / company name</label>
+    <input type="text" id="brandName" placeholder="e.g. Oat House Foods" oninput="saveSettings()"/>
+  </div>
+  <div class="field">
+    <label>Reporting period</label>
+    <input type="text" id="reportPeriod" placeholder="e.g. Q1 2026 or FY 2025" oninput="saveSettings()"/>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<p class="section-title">Saved tool results</p>
+<div class="select-row">
+  <button onclick="selectAll()">Select all with data</button>
+  <button onclick="deselectAll()">Deselect all</button>
+  <span id="selectedCount">0 selected</span>
+  <button id="clearAllBtn" class="btn-clear-all" onclick="clearAllData(this)" style="margin-left:auto;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+    Clear All Data
+  </button>
+</div>
+<div class="tool-grid" id="toolGrid"></div>
+<p style="font-size:12px;color:var(--hint);margin-top:8px;">Go to any tool, run your numbers, then click <strong>"Save for Export"</strong> — it will appear here.</p>
+
+<div class="export-bar">
+  <div class="export-bar-left">
+    <p>Ready to export</p>
+    <span id="exportReadyLabel">Select tools above to include them</span>
+  </div>
+  <button class="btn btn-refresh" onclick="refresh()">↺ Refresh</button>
+  <button class="btn btn-excel" onclick="exportExcel()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Export to Excel
+  </button>
+  <button class="btn btn-pdf" onclick="exportPDF()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Export to PDF
+  </button>
+</div>
+
+</div><!-- end .no-print -->
+
+<!-- ── Print-only PDF report ──────────────── -->
+<div class="print-only" id="pdfReport"></div>
+
+<div class="no-print">
+<footer>
+  <div class="footer-left">Built by <strong>Sam Pellerito</strong> — MisEnPlace</div>
+  <div class="footer-right"><a href="index.html">← All tools</a></div>
+</footer>
+</div>
+
+</div><!-- end .page -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script>
+// ── Tool registry ───────────────────────────────
+const TOOL_REGISTRY = [
+  { id:'cogs-per-unit',       label:'COGS Per Unit Builder',              href:'cogs-per-unit-builder.html',          icon:'🧮' },
+  { id:'cost-variance',       label:'Standard vs Actual Cost Variance',   href:'standard-vs-actual-cost-variance.html',icon:'📊' },
+  { id:'make-vs-buy',         label:'Make vs Buy Decision',               href:'make-vs-buy-decision.html',           icon:'⚖️' },
+  { id:'moq-optimizer',       label:'MOQ & Run Size Optimizer',           href:'moq-run-size-optimizer.html',         icon:'📦' },
+  { id:'demand-planning',     label:'Demand Planning & Safety Stock',     href:'demand-planning-safety-stock.html',   icon:'📈' },
+  { id:'cash-to-cash',        label:'Cash-to-Cash Cycle',                 href:'cash-to-cash-cycle.html',             icon:'💵' },
+  { id:'stockout-overstock',  label:'Stockout vs Overstock Cost',         href:'stockout-vs-overstock-cost.html',     icon:'⚠️' },
+  { id:'landed-cost',         label:'Landed Cost & Freight',              href:'landed-cost-freight.html',            icon:'🚢' },
+  { id:'trade-spend',         label:'Trade Spend & Net Revenue',          href:'trade-spend-net-revenue.html',        icon:'🏪' },
+  { id:'channel-margin',      label:'Channel Margin Waterfall',           href:'channel-margin-waterfall.html',       icon:'📉' },
+  { id:'ops-impact',          label:'Operational Impact Calculator',      href:'operational-impact-calculator.html',  icon:'⚡' },
+];
+
+// ── State ───────────────────────────────────────
+let savedData = {};    // toolId → export object
+let selected  = new Set();
+
+const STORE_KEY = tool => 'cpg_export_' + tool;
+const SETTINGS_KEY = 'cpg_export_settings';
+
+// ── Load ────────────────────────────────────────
+function loadAll(){
+  savedData = {};
+  TOOL_REGISTRY.forEach(t => {
+    const raw = localStorage.getItem(STORE_KEY(t.id));
+    if(raw){ try{ savedData[t.id] = JSON.parse(raw); } catch(e){} }
+  });
+}
+
+function loadSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');
+    if(s.brandName)   document.getElementById('brandName').value   = s.brandName;
+    if(s.reportPeriod) document.getElementById('reportPeriod').value = s.reportPeriod;
+  } catch(e){}
+}
+
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+    brandName:    document.getElementById('brandName').value,
+    reportPeriod: document.getElementById('reportPeriod').value,
+  }));
+}
+
+// ── UI ──────────────────────────────────────────
+function buildGrid(){
+  const grid = document.getElementById('toolGrid');
+  grid.innerHTML = '';
+
+  TOOL_REGISTRY.forEach(t => {
+    const data    = savedData[t.id];
+    const hasSave = !!data;
+    const isSel   = selected.has(t.id);
+
+    const card = document.createElement('div');
+    card.className = 'tool-card' + (isSel?' selected':'') + (!hasSave?' no-data':'');
+    card.id = 'card-'+t.id;
+    if(hasSave) card.onclick = () => toggleSelect(t.id);
+
+    const when = hasSave ? timeAgo(data.savedAt) : '';
+    const previewHtml = hasSave ? buildPreview(data) : '';
+
+    card.innerHTML = `
+      <div class="tool-check">
+        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+          <path d="M1 4L4 7L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      ${hasSave ? `<button class="card-clear-btn" onclick="event.stopPropagation();clearToolData('${t.id}',this)" title="Clear saved data for this tool">✕ Clear</button>` : ''}
+      <div class="tool-name">${t.icon} ${t.label}</div>
+      <div class="tool-status">
+        <span class="status-dot ${hasSave?'saved':'empty'}"></span>
+        <span style="font-size:11px;color:${hasSave?'var(--teal)':'var(--hint)'}">
+          ${hasSave
+            ? `<strong style="color:var(--teal)">Saved</strong>${when ? ' &middot; '+when : ''}`
+            : 'No data — <a href="'+t.href+'" style="color:var(--accent);text-decoration:none;">open tool →</a>'}
+        </span>
+      </div>
+      ${previewHtml}`;
+    grid.appendChild(card);
+  });
+
+  updateCount();
+}
+
+function buildPreview(data){
+  if(!data.metrics || !data.metrics.length) return '';
+  const top = data.metrics.slice(0,3);
+  return '<div class="tool-metrics-preview">'
+    + top.map(m => `<span class="mini-metric">${m.name}: <strong>${m.formatted}</strong></span>`).join('')
+    + '</div>';
+}
+
+function toggleSelect(id){
+  if(!savedData[id]) return;
+  if(selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  buildGrid();
+}
+
+function selectAll(){
+  TOOL_REGISTRY.forEach(t => { if(savedData[t.id]) selected.add(t.id); });
+  buildGrid();
+}
+
+function deselectAll(){
+  selected.clear();
+  buildGrid();
+}
+
+function clearAllData(btn){
+  const hasSomeData = TOOL_REGISTRY.some(t => savedData[t.id]);
+  if(!hasSomeData){ return; }
+  if(!confirm('Clear all saved tool data? This cannot be undone.')) return;
+  TOOL_REGISTRY.forEach(t => localStorage.removeItem(STORE_KEY(t.id)));
+  selected.clear();
+  loadAll();
+  buildGrid();
+  // Flash the button
+  const orig = btn.innerHTML;
+  btn.classList.add('cleared');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 12 4 9"/></svg> ✓ All data cleared';
+  setTimeout(()=>{ btn.classList.remove('cleared'); btn.innerHTML=orig; }, 2500);
+}
+
+function clearToolData(toolId, btn){
+  localStorage.removeItem(STORE_KEY(toolId));
+  selected.delete(toolId);
+  delete savedData[toolId];
+  buildGrid();
+}
+
+function updateCount(){
+  const n = selected.size;
+  document.getElementById('selectedCount').textContent = n + ' selected';
+  document.getElementById('exportReadyLabel').textContent =
+    n === 0 ? 'Select tools above to include them'
+             : n + ' tool' + (n>1?'s':'') + ' ready to export';
+}
+
+function refresh(){
+  loadAll();
+  buildGrid();
+}
+
+// ── Time helper ─────────────────────────────────
+function timeAgo(iso){
+  try{
+    const diff = (Date.now() - new Date(iso)) / 1000;
+    if(diff < 60)   return 'just now';
+    if(diff < 3600) return Math.round(diff/60)+'m ago';
+    if(diff < 86400) return Math.round(diff/3600)+'h ago';
+    return Math.round(diff/86400)+'d ago';
+  }catch(e){ return ''; }
+}
+
+// ── Excel export ────────────────────────────────
+function exportExcel(){
+  if(selected.size === 0){ alert('Select at least one tool to export.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('Excel library not loaded yet — try again in a moment.'); return; }
+
+  const brand  = document.getElementById('brandName').value   || 'CPG Brand';
+  const period = document.getElementById('reportPeriod').value || 'Export';
+  const wb     = XLSX.utils.book_new();
+
+  // Sheet 1: Executive Summary
+  const summaryRows = [
+    [brand + ' — CPG Operations Export', '', '', period],
+    [],
+    ['Tool', 'Metric', 'Value'],
+  ];
+
+  const selectedTools = TOOL_REGISTRY.filter(t => selected.has(t.id));
+
+  selectedTools.forEach(t => {
+    const data = savedData[t.id];
+    if(!data) return;
+    summaryRows.push([]);
+    summaryRows.push([t.icon + ' ' + t.label]);
+    (data.metrics||[]).forEach(m => {
+      summaryRows.push(['', m.name, m.formatted]);
+    });
+  });
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary['!cols'] = [{wch:36},{wch:28},{wch:18},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  // One sheet per tool
+  selectedTools.forEach(t => {
+    const data = savedData[t.id];
+    if(!data) return;
+
+    const rows = [[t.icon + ' ' + t.label], []];
+
+    // Metrics block
+    if(data.metrics && data.metrics.length){
+      rows.push(['Metric', 'Value']);
+      data.metrics.forEach(m => rows.push([m.name, m.formatted]));
+      rows.push([]);
+    }
+
+    // Table block
+    if(data.tableHeaders && data.tableRows && data.tableRows.length){
+      rows.push(data.tableHeaders);
+      data.tableRows.forEach(r => rows.push(r));
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:32},{wch:18},{wch:18},{wch:18},{wch:18}];
+
+    // Safe sheet name (max 31 chars, no invalid chars)
+    const sheetName = t.label.replace(/[:\\\/\?\*\[\]]/g,'').slice(0,31);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+
+  const filename = (brand + ' CPG Ops ' + period).replace(/[^a-zA-Z0-9 ]/g,'').trim() + '.xlsx';
+  XLSX.writeFile(wb, filename);
+}
+
+// ── Tool category groups ────────────────────────
+const TOOL_GROUPS = [
+  { label: 'Cost Structure',            ids: ['cogs-per-unit','cost-variance'] },
+  { label: 'Procurement & Planning',    ids: ['make-vs-buy','moq-optimizer','demand-planning'] },
+  { label: 'Working Capital & Risk',    ids: ['cash-to-cash','stockout-overstock'] },
+  { label: 'Channel Economics & Trade', ids: ['landed-cost','trade-spend','channel-margin'] },
+  { label: 'Strategic Impact',          ids: ['ops-impact'] },
+];
+
+// ── PDF export ──────────────────────────────────
+function exportPDF(){
+  if(selected.size === 0){ alert('Select at least one tool to export.'); return; }
+
+  const brand  = document.getElementById('brandName').value   || 'CPG Brand';
+  const period = document.getElementById('reportPeriod').value || new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const now    = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const selectedTools = TOOL_REGISTRY.filter(t => selected.has(t.id));
+
+  // Cover KPIs — pull top metric from first 4 tools that have a good/notable metric
+  const coverKPIs = [];
+  selectedTools.forEach(t => {
+    if(coverKPIs.length >= 4) return;
+    const data = savedData[t.id];
+    if(!data || !data.metrics) return;
+    const m = data.metrics.find(x=>x.sentiment==='good') || data.metrics[0];
+    if(m) coverKPIs.push({ label: m.name, value: m.formatted, sentiment: m.sentiment, tool: t.label });
+  });
+  while(coverKPIs.length < 4) coverKPIs.push({ label:'—', value:'—', sentiment:'', tool:'' });
+
+  const coverKPIHtml = coverKPIs.map(k=>{
+    const valCls = k.sentiment==='good'?'teal':k.sentiment==='warn'?'amber':k.sentiment==='bad'?'bad':'';
+    return `<div class="rpt-cover-kpi">
+      <div class="rpt-cover-kpi-label">${escHtml(k.label)}</div>
+      <div class="rpt-cover-kpi-val ${valCls}">${escHtml(k.value)}</div>
+      <div class="rpt-cover-kpi-sub">${escHtml(k.tool)}</div>
+    </div>`;
+  }).join('');
+
+  let html = `<div class="rpt">
+    <div class="rpt-cover">
+      <p class="rpt-cover-tag">CPG Operations Report &middot; ${escHtml(period)}</p>
+      <h1 class="rpt-cover-title">${escHtml(brand)}</h1>
+      <p class="rpt-cover-sub">Operations analysis across ${selectedTools.length} tool${selectedTools.length>1?'s':''} — cost structure, procurement, working capital, and channel economics.</p>
+      <div class="rpt-cover-meta">
+        <div class="rpt-cover-meta-item"><label>Generated</label><span>${now}</span></div>
+        <div class="rpt-cover-meta-item"><label>Tools included</label><span>${selectedTools.length}</span></div>
+      </div>
+      <hr class="rpt-cover-rule"/>
+      <div class="rpt-cover-kpis">${coverKPIHtml}</div>
+      <div class="rpt-claude-badge">
+        ${claudeLogoSVG(18)}
+        <span class="rpt-claude-text">Powered by Claude &middot; MisEnPlace</span>
+      </div>
+    </div>`;
+
+  TOOL_GROUPS.forEach(group => {
+    const groupTools = selectedTools.filter(t => group.ids.includes(t.id));
+    if(!groupTools.length) return;
+    html += `<div class="rpt-group">${escHtml(group.label)}</div>`;
+    groupTools.forEach(t => {
+      const data = savedData[t.id];
+      if(!data) return;
+      html += `<div class="rpt-section">
+        <div class="rpt-hd">
+          <div class="rpt-icon">${t.icon}</div>
+          <div>
+            <div class="rpt-title">${escHtml(t.label)}</div>
+            ${data.savedAt ? `<div class="rpt-sub">Saved ${timeAgo(data.savedAt)}</div>` : ''}
+          </div>
+        </div>
+        ${buildPDFMetrics(data)}
+        ${buildPDFChart(data)}
+        ${buildPDFTable(data)}
+        ${buildPDFInsight(data)}
+      </div>`;
+    });
+  });
+
+  html += `<div class="rpt-footer">
+    <div class="rpt-footer-left"><strong>${escHtml(brand)}</strong> &mdash; ${escHtml(period)}</div>
+    <div class="rpt-footer-badge">${claudeLogoSVG(16)}<span class="rpt-footer-badge-text">Powered by Claude</span></div>
+  </div></div>`;
+
+  document.getElementById('pdfReport').innerHTML = html;
+  setTimeout(() => window.print(), 150);
+}
+
+function claudeLogoSVG(size=20){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#D97757"/><path d="M20 8L28 28H24L22 22H18L16 28H12L20 8ZM19 18H21L20 14Z" fill="white"/></svg>`;
+}
+
+function parseN(s){ return parseFloat(String(s||'').replace(/[^0-9.-]/g,''))||0; }
+
+function buildPDFMetrics(data){
+  if(!data.metrics || !data.metrics.length) return '';
+  return `<div class="rpt-kpi-row">${data.metrics.slice(0,6).map(m=>{
+    const cls = m.sentiment==='good'?'good':m.sentiment==='bad'?'bad':m.sentiment==='warn'?'warn':'';
+    return `<div class="rpt-kpi"><div class="rpt-kpi-label">${escHtml(m.name)}</div><div class="rpt-kpi-val ${cls}">${escHtml(m.formatted)}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function buildPDFTable(data){
+  if(!data.tableHeaders || !data.tableRows || !data.tableRows.length) return '';
+  const header = data.tableHeaders.map(h=>`<th>${escHtml(h)}</th>`).join('');
+  const rows   = data.tableRows.map(row=>{
+    const cls = row._class ? ` class="${row._class}"` : '';
+    const cells = row.filter((_,i)=>i!=='_class'&&row[i]!==undefined).map(c=>`<td>${escHtml(String(c))}</td>`).join('');
+    return `<tr${cls}>${cells}</tr>`;
+  }).join('');
+  return `<table class="rpt-table"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function buildPDFInsight(data){
+  if(!data.metrics || !data.metrics.length) return '';
+  const worst = data.metrics.find(m=>m.sentiment==='bad');
+  const best  = data.metrics.find(m=>m.sentiment==='good') || data.metrics[0];
+  const m = worst || best;
+  const cls = m.sentiment==='good'?'good':m.sentiment==='bad'?'bad':m.sentiment==='warn'?'warn':'';
+  return `<div class="rpt-insight ${cls}"><strong>${escHtml(m.name)}:</strong> ${escHtml(m.formatted)}</div>`;
+}
+
+function buildPDFChart(data){
+  if(data.chartData){
+    if(data.chartData.type==='bar_stack') return buildBarStack(data.chartData);
+    if(data.chartData.type==='compare')   return buildCompareGrid(data.chartData);
+  }
+  return buildChartFromMetrics(data.metrics||[]);
+}
+
+function buildChartFromMetrics(metrics){
+  const dio = metrics.find(x=>x.name.startsWith('DIO'));
+  const dso = metrics.find(x=>x.name.startsWith('DSO'));
+  const dpo = metrics.find(x=>x.name.startsWith('DPO'));
+  const ccc = metrics.find(x=>x.name.toLowerCase().includes('cash conversion'));
+  if(dio&&dso&&dpo&&ccc) return buildCCCDiagram(parseN(dio.formatted),parseN(dso.formatted),parseN(dpo.formatted),parseN(ccc.formatted));
+  const ch = metrics.filter(x=>x.name.endsWith(' GM%'));
+  if(ch.length>=2) return buildChannelBars(ch);
+  return '';
+}
+
+function buildBarStack(cd){
+  const segs = cd.segments||[];
+  const total = segs.reduce((s,sg)=>s+(sg.value||0),0);
+  if(!total) return '';
+  const bars = segs.map(sg=>{
+    const pct=(sg.value/total)*100;
+    const lbl=pct>9?sg.label+' '+pct.toFixed(0)+'%':pct>4?pct.toFixed(0)+'%':'';
+    return `<div class="rpt-bar-seg" style="background:${sg.color};width:${pct.toFixed(1)}%">${escHtml(lbl)}</div>`;
+  }).join('');
+  const gpPct=cd.gpPct||0;
+  const gpBar=gpPct>0?`<div class="rpt-bar-seg" style="background:rgba(29,158,117,0.75);flex:1">GP ${gpPct.toFixed(0)}%</div>`:'';
+  const legend=segs.map(sg=>`<span><span class="rpt-leg" style="background:${sg.color}"></span>${escHtml(sg.label)} ($${sg.value.toFixed(2)})</span>`).join('');
+  return `<div class="rpt-bar-wrap">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${escHtml(cd.totalLabel||'Cost breakdown')}</div>
+    <div class="rpt-bar-track">${bars}${gpBar}</div>
+    <div class="rpt-bar-legend">${legend}</div>
+  </div>`;
+}
+
+function buildCompareGrid(cd){
+  const card=(item,win)=>{
+    const rows=(item.rows||[]).map(r=>`<div class="rpt-cmp-row"><span>${escHtml(r.label)}</span><span>${escHtml(r.value)}</span></div>`).join('');
+    return `<div class="rpt-cmp-card${win?' winner':''}">
+      <div class="rpt-cmp-head${win?' win':''}">${win?'&#9733; ':''}${escHtml(item.label)}</div>
+      <div class="rpt-cmp-big">${escHtml(item.mainValue)}</div>
+      <div class="rpt-cmp-sub">${escHtml(item.mainSub||'')}</div>
+      ${rows}
+    </div>`;
+  };
+  const afterWins=cd.winner==='after';
+  return `<div class="rpt-cmp">${card(cd.before,!afterWins)}${card(cd.after,afterWins)}</div>`;
+}
+
+function buildCCCDiagram(dio,dso,dpo,ccc){
+  const seg=(lbl,v,cls,col)=>`<div class="rpt-ccc-seg" style="background:${cls}">
+    <div class="rpt-ccc-lbl">${lbl}</div>
+    <div class="rpt-ccc-val" style="color:${col}">${v.toFixed(1)}d</div>
+  </div>`;
+  return `<div>
+    <div class="rpt-ccc-formula">
+      <strong style="color:var(--accent)">${dio.toFixed(1)}d DIO</strong> +
+      <strong style="color:var(--amber)">${dso.toFixed(1)}d DSO</strong> &minus;
+      <strong style="color:var(--teal)">${dpo.toFixed(1)}d DPO</strong> =
+      <strong style="color:var(--purple)">${ccc.toFixed(1)}d CCC</strong>
+    </div>
+    <div class="rpt-ccc">
+      ${seg('DIO',dio,'rgba(24,95,165,0.08)','var(--accent)')}
+      ${seg('DSO',dso,'rgba(186,117,23,0.08)','var(--amber)')}
+      ${seg('DPO',dpo,'rgba(29,158,117,0.08)','var(--teal)')}
+      ${seg('CCC',ccc,'rgba(127,119,221,0.10)','var(--purple)')}
+    </div>
+  </div>`;
+}
+
+function buildChannelBars(chMetrics){
+  return `<div style="margin-bottom:16px">${chMetrics.map(m=>{
+    const pct=parseN(m.formatted);
+    const lbl=m.name.replace(' GM%','');
+    const color=pct>=50?'rgba(29,158,117,0.8)':pct>=40?'rgba(186,117,23,0.7)':'rgba(226,75,74,0.7)';
+    const txtColor=pct>=50?'var(--teal)':pct>=40?'var(--amber)':'var(--red)';
+    return `<div class="rpt-ch-row">
+      <div class="rpt-ch-label">${escHtml(lbl)}</div>
+      <div class="rpt-ch-track"><div class="rpt-ch-bar" style="background:${color};width:${Math.min(pct,100).toFixed(1)}%">${pct.toFixed(1)}% GM</div></div>
+      <div class="rpt-ch-pct" style="color:${txtColor}">${pct.toFixed(1)}%</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Init ────────────────────────────────────────
+loadAll();
+loadSettings();
+buildGrid();
+</script>
+</body>
+</html>
