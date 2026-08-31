@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The MisEnPlace Hiring Method</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream: #f5f1e6;
+    --cream-deep: #ece5d3;
+    --ink: #2b2621;
+    --ink-soft: #5c534a;
+    --rule-red: #b3453b;
+    --coral: #cf5a3f;
+    --coral-deep: #b6482f;
+    --sage: #63765a;
+    --gold: #a9822f;
+    --paper-line: rgba(43,38,33,0.09);
+    --card-shadow: 0 1px 0 rgba(43,38,33,0.06), 0 8px 20px -14px rgba(43,38,33,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        var(--cream) 0px,
+        var(--cream) 35px,
+        var(--paper-line) 36px,
+        var(--cream) 37px
+      );
+    background-color: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    padding: 0;
+  }
+  .margin-rule{
+    position: fixed;
+    top:0; bottom:0; left: 64px;
+    width: 1px;
+    background: var(--rule-red);
+    opacity: 0.35;
+    z-index: 0;
+  }
+  .wrap{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px 90px 88px;
+    position: relative;
+    z-index: 1;
+  }
+  @media (max-width: 640px){
+    .margin-rule{ left: 20px; }
+    .wrap{ padding: 32px 20px 70px 36px; }
+  }
+
+  header.masthead{
+    margin-bottom: 36px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--rule-red);
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:16px; height:1px; background: var(--rule-red);
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.05;
+    margin: 10px 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .sub{
+    font-size: 16px;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    line-height: 1.55;
+  }
+  .sub em{
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  .station-rail{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    margin: 28px 0 8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  .rail-step{
+    padding: 5px 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.35);
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .rail-step.active{
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--ink);
+  }
+  .rail-arrow{ color: var(--paper-line); }
+
+  section.panel{ display:none; }
+  section.panel.active{ display:block; animation: fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background: var(--cream-deep);
+    border: 1px solid var(--paper-line);
+    border-radius: 6px;
+    padding: 24px 26px;
+    margin-bottom: 18px;
+    box-shadow: var(--card-shadow);
+  }
+  .card h2{
+    font-family:'Fraunces', serif;
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .card .hint{
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+
+  label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 14px 0 6px;
+  }
+  label:first-of-type{ margin-top:0; }
+  input[type=text], input[type=number], textarea, select{
+    width:100%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid var(--paper-line);
+    border-bottom: 1px solid var(--ink-soft);
+    border-radius: 3px;
+    padding: 9px 11px;
+    resize: vertical;
+  }
+  textarea{ min-height: 64px; line-height:1.5; }
+  input:focus, textarea:focus, select:focus{
+    outline: 2px solid var(--coral);
+    outline-offset: 1px;
+  }
+
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px){ .row2, .row3{ grid-template-columns: 1fr; } }
+
+  .btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    padding: 9px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .btn:hover{ background: var(--ink); color: var(--cream); }
+  .btn.primary{
+    background: var(--coral);
+    border-color: var(--coral-deep);
+    color: var(--cream);
+  }
+  .btn.primary:hover{ background: var(--coral-deep); }
+  .btn.ghost{ border-color: var(--paper-line); color: var(--ink-soft); }
+  .btn.ghost:hover{ background: var(--ink-soft); color: var(--cream); border-color: var(--ink-soft);}
+  .btn.small{ padding: 5px 10px; font-size: 11px; }
+  .btn.danger:hover{ background: var(--rule-red); border-color: var(--rule-red); }
+
+  .list-item{
+    display:flex; gap:8px; align-items:center; margin-bottom:8px;
+  }
+  .list-item input{ flex:1; }
+  .add-row{ margin-top: 6px; }
+
+  .competency-grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap: 8px 20px;
+  }
+  @media (max-width: 640px){ .competency-grid{ grid-template-columns: 1fr; } }
+  .comp-check{
+    display:flex; align-items:center; gap:9px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    padding: 4px 0;
+  }
+  .comp-check input{ width:auto; accent-color: var(--coral); }
+
+  .station-card{
+    position: relative;
+    background: var(--cream-deep);
+    border: 1px solid var(--paper-line);
+    border-radius: 4px;
+    padding: 22px 24px 20px;
+    margin-bottom: 22px;
+    box-shadow: var(--card-shadow);
+  }
+  .station-card::before{
+    content: attr(data-tag);
+    position:absolute;
+    top: -11px; left: 22px;
+    background: var(--ink);
+    color: var(--cream);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 2px;
+  }
+  .station-head{
+    display:grid; grid-template-columns: 2fr 1fr auto; gap: 14px; align-items:end;
+    margin-bottom: 6px;
+  }
+  @media (max-width: 640px){ .station-head{ grid-template-columns: 1fr; } }
+  .station-remove{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--rule-red);
+    background:none; border:none; cursor:pointer;
+    padding: 9px 4px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .qa{
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--paper-line);
+  }
+  .qa .q{
+    font-family:'Fraunces', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .rating-row{
+    display:grid; grid-template-columns: 1.3fr 0.7fr; gap: 12px; align-items: center;
+  }
+  .rating-row + .rating-row{ margin-top: 10px; }
+  .rating-scale{
+    display:flex; gap:3px;
+  }
+  .dot{
+    width: 20px; height:20px;
+    border: 1px solid var(--ink-soft);
+    border-radius: 50%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 9px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    color: var(--ink-soft);
+    background: var(--cream);
+    transition: all .1s ease;
+  }
+  .dot.selected{ background: var(--sage); border-color: var(--sage); color: var(--cream); }
+
+  .toolbar{
+    display:flex; gap:10px; justify-content:flex-end; margin-top: 22px; flex-wrap:wrap;
+  }
+
+  .summary-header{
+    display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;
+    margin-bottom: 18px;
+  }
+  .stamp{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
+  .pattern-flag{
+    display:flex; gap:12px; padding: 12px 14px; border-radius: 4px;
+    margin-bottom: 10px; align-items:flex-start;
+    font-size: 13.5px; line-height:1.5;
+  }
+  .pattern-flag.warn{ background: rgba(169,130,47,0.13); border:1px solid rgba(169,130,47,0.35); }
+  .pattern-flag.ok{ background: rgba(99,118,90,0.12); border:1px solid rgba(99,118,90,0.3); }
+  .pattern-flag .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 2px;
+    white-space:nowrap;
+    color: var(--cream);
+  }
+  .pattern-flag.warn .tag{ background: var(--gold); }
+  .pattern-flag.ok .tag{ background: var(--sage); }
+
+  .rating-table{
+    width:100%;
+    border-collapse: collapse;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    margin-top: 8px;
+  }
+  .rating-table th{
+    text-align:left;
+    font-weight:600;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--ink-soft);
+    padding: 6px 8px;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+  }
+  .rating-table td{
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--paper-line);
+  }
+  .bar-cell{ display:flex; align-items:center; gap:8px; }
+  .bar-track{ flex:1; height:6px; background: var(--paper-line); border-radius:3px; overflow:hidden; }
+  .bar-fill{ height:100%; background: var(--sage); }
+
+  .empty-note{
+    font-size: 13.5px; color: var(--ink-soft); font-style: italic;
+  }
+
+  .footer-note{
+    margin-top: 40px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--paper-line);
+    padding-top: 14px;
+    line-height: 1.6;
+  }
+
+  #toast{
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--ink); color: var(--cream);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    padding: 10px 16px; border-radius: 4px;
+    opacity: 0; transform: translateY(8px);
+    transition: all .25s ease;
+    pointer-events:none;
+    z-index: 10;
+  }
+  #toast.show{ opacity:1; transform:none; }
+
+  .save-bar{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin: 22px 0 0;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.4);
+    border: 1px solid var(--paper-line);
+    border-radius: 5px;
+  }
+  .save-bar input[type=text]{ max-width: 220px; }
+  .save-bar select{ max-width: 200px; }
+  .save-bar .stamp{ margin-left:auto; }
+
+  .score-summary{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 640px){ .score-summary{ grid-template-columns: 1fr; } }
+  .score-box{
+    border: 1px solid var(--paper-line);
+    border-radius: 5px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.4);
+  }
+  .score-box .num{
+    font-family:'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 600;
+    line-height:1;
+  }
+  .score-box .lbl{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .score-box .trend-up .num{ color: var(--sage); }
+  .score-box .trend-down .num{ color: var(--rule-red); }
+</style>
+</head>
+<body>
+<div class="margin-rule"></div>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">MisEnPlace &middot; Hiring Method</div>
+    <h1>Set the station<br>before you hire.</h1>
+    <p class="sub">A kitchen doesn't trust the menu &mdash; it trusts <em>mise en place</em>: everything checked, prepped, and in its place before service starts. This runs the same discipline on hiring. Build the scorecard once. Then walk every past role with the identical five questions. The story that stays consistent across every station is the one you can trust.</p>
+  </header>
+
+  <div class="station-rail" id="rail">
+    <div class="rail-step active" data-panel="scorecard">01 &nbsp;Scorecard</div>
+    <span class="rail-arrow">&rarr;</span>
+    <div class="rail-step" data-panel="stations">02 &nbsp;Walk the Stations</div>
+    <span class="rail-arrow">&rarr;</span>
+    <div class="rail-step" data-panel="summary">03 &nbsp;Read the Ticket</div>
+  </div>
+
+  <!-- PANEL 1: SCORECARD -->
+  <section class="panel active" id="panel-scorecard">
+    <div class="card">
+      <h2>The role, defined before you meet anyone</h2>
+      <p class="hint">Write the scorecard first, candidate-blind. This is what "done well" looks like in the job &mdash; not a list of traits, a list of outcomes.</p>
+
+      <label for="candidateName">Candidate name</label>
+      <input type="text" id="candidateName" placeholder="e.g. Jordan Reyes" oninput="markDirty()">
+
+      <label for="roleTitle">Role title</label>
+      <input type="text" id="roleTitle" placeholder="e.g. Director of Supply Chain">
+
+      <label for="roleMission">Mission (one sentence)</label>
+      <input type="text" id="roleMission" placeholder="e.g. Cut landed cost 12% without missing a fill rate target">
+
+      <label>Outcomes &mdash; what needs to be true in 12 months</label>
+      <div id="outcomesList"></div>
+      <button class="btn small add-row" onclick="addOutcome()">+ Add outcome</button>
+
+      <label style="margin-top:22px;">Competencies to screen for</label>
+      <p class="hint" style="margin-top:-4px;">Check what matters for this seat. These become the lens you read station answers through &mdash; not extra questions to ask.</p>
+      <div class="competency-grid" id="competencyGrid"></div>
+    </div>
+
+    <div class="save-bar">
+      <select id="candidateSelect" onchange="loadSelectedCandidate()">
+        <option value="">Load a saved candidate&hellip;</option>
+      </select>
+      <button class="btn small" onclick="saveCandidate()">Save candidate</button>
+      <button class="btn small danger" onclick="deleteSelectedCandidate()">Delete</button>
+      <span class="stamp" id="saveStamp"></span>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="goPanel('stations')">Start walking stations &rarr;</button>
+    </div>
+  </section>
+
+  <!-- PANEL 2: STATIONS -->
+  <section class="panel" id="panel-stations">
+    <div class="card" style="margin-bottom:24px;">
+      <h2>One station per past job</h2>
+      <p class="hint">Chronological, oldest first or most recent first &mdash; pick one and stay consistent across every candidate. Ask <em>the same five questions</em> at every station. The consistency is the method: it's much harder to keep a story straight five times running than once.</p>
+    </div>
+
+    <div id="stationsContainer"></div>
+
+    <button class="btn add-row" onclick="addStation()" style="margin-bottom:24px;">+ Add a station (past role)</button>
+
+    <div class="toolbar">
+      <button class="btn ghost" onclick="goPanel('scorecard')">&larr; Back to scorecard</button>
+      <button class="btn primary" onclick="goPanel('summary')">Read the ticket &rarr;</button>
+    </div>
+  </section>
+
+  <!-- PANEL 3: SUMMARY -->
+  <section class="panel" id="panel-summary">
+    <div class="card">
+      <div class="summary-header">
+        <h2 style="margin:0;">Reading the ticket</h2>
+        <span class="stamp" id="summaryStamp"></span>
+      </div>
+      <p class="hint">Ratings compare what the candidate says about themselves against what they say others would say. A gap isn't disqualifying &mdash; but an unexplained one is worth a direct follow-up question.</p>
+
+      <div class="score-summary" id="scoreSummary"></div>
+      <div id="patternFlags"></div>
+      <table class="rating-table" id="ratingTable"></table>
+    </div>
+
+    <div class="card" id="exportCard">
+      <h2>Take it to the interview</h2>
+      <p class="hint">Copy this as your printed or shared prep sheet.</p>
+      <textarea id="exportText" style="min-height:220px; font-size:12.5px;" readonly></textarea>
+      <div class="toolbar" style="justify-content:flex-start; margin-top:10px;">
+        <button class="btn" onclick="copyExport()">Copy to clipboard</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn ghost" onclick="goPanel('stations')">&larr; Back to stations</button>
+    </div>
+  </section>
+
+  <div class="footer-note">
+    Adapted from the structured "who" interview method (Smart &amp; Street) through a MisEnPlace lens &mdash; look at the whole station, not one ingredient. Saved candidates are stored to your account only &mdash; not visible to other visitors. Unsaved work clears on refresh.
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const QUESTIONS = [
+  { key: 'hired', label: 'What were you hired to do here?' },
+  { key: 'proud', label: 'What accomplishments are you most proud of in this role?' },
+  { key: 'low', label: 'What were some low points during this job?' },
+  { key: 'people', label: 'Who did you work with (boss, peers, direct reports), and how would each rate your performance?' },
+  { key: 'left', label: 'Why did you leave?' },
+];
+
+const DEFAULT_COMPETENCIES = [
+  'Ownership under ambiguity',
+  'Decisiveness with incomplete data',
+  'Cross-functional influence',
+  'Cost / margin discipline',
+  'Vendor & supplier management',
+  'Communicates bad news early',
+  'Builds systems others can run',
+  'Follow-through under pressure'
+];
+
+let outcomes = ['', '', ''];
+let stations = [];
+let stationCounter = 0;
+
+function addOutcome(){
+  outcomes.push('');
+  renderOutcomes();
+}
+function removeOutcome(i){
+  outcomes.splice(i,1);
+  renderOutcomes();
+}
+function renderOutcomes(){
+  const el = document.getElementById('outcomesList');
+  el.innerHTML = outcomes.map((val, i) => `
+    <div class="list-item">
+      <input type="text" value="${escapeAttr(val)}" placeholder="e.g. Reduce COGS by 8% while holding fill rate above 97%"
+        oninput="outcomes[${i}]=this.value">
+      <button class="btn small danger" onclick="removeOutcome(${i})">&times;</button>
+    </div>
+  `).join('');
+}
+
+function renderCompetencies(){
+  const el = document.getElementById('competencyGrid');
+  el.innerHTML = DEFAULT_COMPETENCIES.map((c, i) => `
+    <label class="comp-check">
+      <input type="checkbox" id="comp-${i}" checked>
+      ${c}
+    </label>
+  `).join('');
+}
+
+function newStation(){
+  stationCounter++;
+  return {
+    id: stationCounter,
+    company: '',
+    title: '',
+    tenure: '',
+    answers: { hired:'', proud:'', low:'', people:'', left:'' },
+    ratingBoss: null,
+    ratingPeer: null,
+    ratingReport: null,
+  };
+}
+
+function addStation(){
+  stations.push(newStation());
+  renderStations();
+}
+function removeStation(id){
+  stations = stations.filter(s => s.id !== id);
+  renderStations();
+}
+
+function renderStations(){
+  const el = document.getElementById('stationsContainer');
+  if(stations.length === 0){
+    el.innerHTML = `<p class="empty-note">No stations yet. Add the candidate's most recent role to begin.</p>`;
+    return;
+  }
+  el.innerHTML = stations.map((s, idx) => `
+    <div class="station-card" data-tag="Station ${idx+1}">
+      <div class="station-head">
+        <div>
+          <label>Company</label>
+          <input type="text" value="${escapeAttr(s.company)}" placeholder="Company name"
+            oninput="updateStation(${s.id}, 'company', this.value)">
+        </div>
+        <div>
+          <label>Title / tenure</label>
+          <input type="text" value="${escapeAttr(s.title)}" placeholder="Title, dates"
+            oninput="updateStation(${s.id}, 'title', this.value)">
+        </div>
+        <div>
+          <button class="station-remove" onclick="removeStation(${s.id})">remove station</button>
+        </div>
+      </div>
+
+      ${QUESTIONS.map(q => `
+        <div class="qa">
+          <div class="q">${q.label}</div>
+          <textarea placeholder="Notes on their answer&hellip;"
+            oninput="updateAnswer(${s.id}, '${q.key}', this.value)">${escapeHtml(s.answers[q.key])}</textarea>
+        </div>
+      `).join('')}
+
+      <div class="qa">
+        <div class="q">Self-rated performance, 1&ndash;10 (as they'd guess each person would score them)</div>
+        ${ratingRow('Their boss would say', s.id, 'ratingBoss', s.ratingBoss)}
+        ${ratingRow('Their peers would say', s.id, 'ratingPeer', s.ratingPeer)}
+        ${ratingRow('Their reports would say', s.id, 'ratingReport', s.ratingReport)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function ratingRow(label, stationId, field, value){
+  let dots = '';
+  for(let i=1;i<=10;i++){
+    dots += `<div class="dot ${value===i?'selected':''}" onclick="setRating(${stationId}, '${field}', ${i})">${i}</div>`;
+  }
+  return `
+    <div class="rating-row">
+      <span>${label}</span>
+      <div class="rating-scale">${dots}</div>
+    </div>
+  `;
+}
+
+function setRating(stationId, field, value){
+  const s = stations.find(x => x.id === stationId);
+  if(!s) return;
+  s[field] = (s[field] === value) ? null : value;
+  renderStations();
+}
+
+function updateStation(id, field, value){
+  const s = stations.find(x => x.id === id);
+  if(s) s[field] = value;
+}
+function updateAnswer(id, key, value){
+  const s = stations.find(x => x.id === id);
+  if(s) s.answers[key] = value;
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(str){
+  if(!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// ---- Navigation ----
+function goPanel(name){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.rail-step').forEach(r => {
+    r.classList.toggle('active', r.dataset.panel === name);
+  });
+  if(name === 'summary') renderSummary();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.getElementById('rail').addEventListener('click', (e) => {
+  const step = e.target.closest('.rail-step');
+  if(step) goPanel(step.dataset.panel);
+});
+
+// ---- Scoring ----
+function stationAverage(s){
+  const ratings = [s.ratingBoss, s.ratingPeer, s.ratingReport].filter(r => r !== null && r !== undefined);
+  if(ratings.length === 0) return null;
+  return ratings.reduce((a,b) => a+b, 0) / ratings.length;
+}
+
+function renderScoreSummary(){
+  const box = document.getElementById('scoreSummary');
+  const stationAvgs = stations.map(stationAverage).filter(v => v !== null);
+
+  if(stationAvgs.length === 0){
+    box.innerHTML = `<div class="score-box"><div class="num">&mdash;</div><div class="lbl">No ratings entered yet</div></div>`;
+    return;
+  }
+
+  const overall = stationAvgs.reduce((a,b)=>a+b,0) / stationAvgs.length;
+
+  // Trajectory: compare first-half average to second-half average, in the
+  // order stations were entered (oldest-to-most-recent, per your own convention).
+  let trendLabel = 'Flat', trendClass = '';
+  if(stationAvgs.length >= 2){
+    const mid = Math.floor(stationAvgs.length / 2) || 1;
+    const early = stationAvgs.slice(0, mid);
+    const later = stationAvgs.slice(mid);
+    const earlyAvg = early.reduce((a,b)=>a+b,0)/early.length;
+    const laterAvg = later.length ? later.reduce((a,b)=>a+b,0)/later.length : earlyAvg;
+    const delta = laterAvg - earlyAvg;
+    if(delta >= 0.6){ trendLabel = 'Rising'; trendClass = 'trend-up'; }
+    else if(delta <= -0.6){ trendLabel = 'Declining'; trendClass = 'trend-down'; }
+  }
+
+  const spreadFlags = stations.filter(s => {
+    const r = [s.ratingBoss, s.ratingPeer, s.ratingReport].filter(v => v !== null);
+    return r.length > 0 && (Math.max(...r) - Math.min(...r)) >= 4;
+  }).length;
+
+  box.innerHTML = `
+    <div class="score-box">
+      <div class="num">${overall.toFixed(1)}</div>
+      <div class="lbl">Overall average, all stations</div>
+    </div>
+    <div class="score-box ${trendClass}">
+      <div class="num">${trendLabel}</div>
+      <div class="lbl">Trajectory, earliest &rarr; most recent</div>
+    </div>
+    <div class="score-box">
+      <div class="num">${spreadFlags}</div>
+      <div class="lbl">Station${spreadFlags===1?'':'s'} with a wide rater spread</div>
+    </div>
+  `;
+}
+
+// ---- Summary / pattern check ----
+function renderSummary(){
+  renderScoreSummary();
+  const stamp = document.getElementById('summaryStamp');
+  stamp.textContent = `${stations.length} station${stations.length===1?'':'s'} walked`;
+
+  const flagsEl = document.getElementById('patternFlags');
+  const flags = [];
+
+  if(stations.length === 0){
+    flagsEl.innerHTML = `<p class="empty-note">Add at least one station to see a pattern read.</p>`;
+  } else {
+    stations.forEach((s, idx) => {
+      const label = s.company || `Station ${idx+1}`;
+      const ratings = [s.ratingBoss, s.ratingPeer, s.ratingReport].filter(r => r !== null);
+      const hasLowPoint = s.answers.low && s.answers.low.trim().length > 0;
+      const hasLeftReason = s.answers.left && s.answers.left.trim().length > 0;
+
+      if(ratings.length > 0){
+        const spread = Math.max(...ratings) - Math.min(...ratings);
+        if(spread >= 4){
+          flags.push({type:'warn', text:`${label}: a ${spread}-point spread between how boss/peers/reports would rate them &mdash; ask directly why the views diverge so much.`});
+        }
+      }
+      if(!hasLowPoint){
+        flags.push({type:'warn', text:`${label}: no low point recorded. Every real job has one &mdash; if it's blank, go back and ask again before moving to the next station.`});
+      }
+      if(!hasLeftReason){
+        flags.push({type:'warn', text:`${label}: no reason given for leaving. This is the single easiest thing to verify later &mdash; don't skip it.`});
+      }
+      if(ratings.length > 0 && ratings.every(r => r >= 8) && hasLowPoint){
+        flags.push({type:'ok', text:`${label}: consistent strong self-rating across boss/peers/reports, and they can still name a real low point. Good sign.`});
+      }
+    });
+
+    if(stations.length >= 2){
+      flags.push({type:'ok', text:`${stations.length} stations walked with the identical five questions &mdash; you now have a comparable read across roles, not just one polished narrative.`});
+    }
+
+    flagsEl.innerHTML = flags.length
+      ? flags.map(f => `
+          <div class="pattern-flag ${f.type}">
+            <span class="tag">${f.type === 'warn' ? 'check' : 'ok'}</span>
+            <span>${f.text}</span>
+          </div>
+        `).join('')
+      : `<p class="empty-note">No flags yet &mdash; fill in station answers to get a pattern read.</p>`;
+  }
+
+  // Rating table
+  const table = document.getElementById('ratingTable');
+  if(stations.length === 0){
+    table.innerHTML = '';
+  } else {
+    const rows = stations.map((s, idx) => {
+      const ratings = { boss: s.ratingBoss, peer: s.ratingPeer, report: s.ratingReport };
+      return `
+        <tr>
+          <td>${escapeHtml(s.company || 'Station ' + (idx+1))}</td>
+          ${['boss','peer','report'].map(k => {
+            const v = ratings[k];
+            const pct = v ? (v/10*100) : 0;
+            return `<td><div class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span>${v ?? '&mdash;'}</span></div></td>`;
+          }).join('')}
+        </tr>
+      `;
+    }).join('');
+    table.innerHTML = `
+      <tr><th>Station</th><th>Boss</th><th>Peers</th><th>Reports</th></tr>
+      ${rows}
+    `;
+  }
+
+  document.getElementById('exportText').value = buildExport();
+}
+
+function buildExport(){
+  const title = document.getElementById('roleTitle').value || '[Role title]';
+  const mission = document.getElementById('roleMission').value || '[Mission not set]';
+  const activeOutcomes = outcomes.filter(o => o.trim());
+  const activeComps = DEFAULT_COMPETENCIES.filter((c,i) => document.getElementById('comp-'+i) && document.getElementById('comp-'+i).checked);
+
+  let out = `MISENPLACE HIRING METHOD — INTERVIEW PREP\n`;
+  out += `${'='.repeat(46)}\n\n`;
+  out += `ROLE: ${title}\nMISSION: ${mission}\n\n`;
+  out += `OUTCOMES (12 months):\n`;
+  activeOutcomes.forEach(o => out += `  - ${o}\n`);
+  out += `\nCOMPETENCIES SCREENED FOR:\n`;
+  activeComps.forEach(c => out += `  - ${c}\n`);
+  out += `\n${'-'.repeat(46)}\nSTATIONS WALKED\n${'-'.repeat(46)}\n`;
+
+  stations.forEach((s, idx) => {
+    out += `\nSTATION ${idx+1}: ${s.company || '[company]'} — ${s.title || '[title]'}\n`;
+    QUESTIONS.forEach(q => {
+      out += `  Q: ${q.label}\n  A: ${s.answers[q.key] || '[not answered]'}\n`;
+    });
+    out += `  Rated by boss/peers/reports: ${s.ratingBoss ?? '—'} / ${s.ratingPeer ?? '—'} / ${s.ratingReport ?? '—'}\n`;
+  });
+
+  return out;
+}
+
+function copyExport(){
+  const ta = document.getElementById('exportText');
+  ta.select();
+  document.execCommand('copy');
+  showToast('Copied to clipboard');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---- Persistence (saved per-browser, not shared) ----
+const STORE_PREFIX = 'candidate:';
+
+function slugify(name){
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'unnamed';
+}
+
+function collectState(){
+  return {
+    candidateName: document.getElementById('candidateName').value,
+    roleTitle: document.getElementById('roleTitle').value,
+    roleMission: document.getElementById('roleMission').value,
+    outcomes,
+    competencies: DEFAULT_COMPETENCIES.map((c,i) => document.getElementById('comp-'+i) ? document.getElementById('comp-'+i).checked : true),
+    stations,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+async function saveCandidate(){
+  const name = document.getElementById('candidateName').value.trim();
+  if(!name){
+    showToast('Add a candidate name first');
+    return;
+  }
+  const key = STORE_PREFIX + slugify(name);
+  try{
+    const result = await window.storage.set(key, JSON.stringify(collectState()), false);
+    if(result){
+      showToast(`Saved ${name}`);
+      document.getElementById('saveStamp').textContent = `Saved ${new Date().toLocaleTimeString()}`;
+      await refreshCandidateList(key);
+    } else {
+      showToast('Save failed &mdash; try again');
+    }
+  } catch(err){
+    showToast('Save failed &mdash; try again');
+  }
+}
+
+async function refreshCandidateList(selectKey){
+  const select = document.getElementById('candidateSelect');
+  try{
+    const listResult = await window.storage.list(STORE_PREFIX, false);
+    const keys = (listResult && listResult.keys) || [];
+    select.innerHTML = '<option value="">Load a saved candidate&hellip;</option>' +
+      keys.map(k => `<option value="${k}" ${k===selectKey?'selected':''}>${k.replace(STORE_PREFIX,'')}</option>`).join('');
+  } catch(err){
+    // no saved candidates yet, or list unsupported — leave default option
+  }
+}
+
+async function loadSelectedCandidate(){
+  const select = document.getElementById('candidateSelect');
+  const key = select.value;
+  if(!key) return;
+  try{
+    const result = await window.storage.get(key, false);
+    if(!result){ showToast('Could not load that candidate'); return; }
+    const state = JSON.parse(result.value);
+    applyState(state);
+    showToast(`Loaded ${state.candidateName || key.replace(STORE_PREFIX,'')}`);
+    document.getElementById('saveStamp').textContent = state.savedAt ? `Saved ${new Date(state.savedAt).toLocaleString()}` : '';
+  } catch(err){
+    showToast('Could not load that candidate');
+  }
+}
+
+async function deleteSelectedCandidate(){
+  const select = document.getElementById('candidateSelect');
+  const key = select.value;
+  if(!key){ showToast('Choose a saved candidate first'); return; }
+  try{
+    await window.storage.delete(key, false);
+    showToast('Deleted');
+    await refreshCandidateList();
+  } catch(err){
+    showToast('Delete failed');
+  }
+}
+
+function applyState(state){
+  document.getElementById('candidateName').value = state.candidateName || '';
+  document.getElementById('roleTitle').value = state.roleTitle || '';
+  document.getElementById('roleMission').value = state.roleMission || '';
+  outcomes = (state.outcomes && state.outcomes.length) ? state.outcomes : ['', '', ''];
+  renderOutcomes();
+  renderCompetencies();
+  if(state.competencies){
+    state.competencies.forEach((checked, i) => {
+      const box = document.getElementById('comp-'+i);
+      if(box) box.checked = checked;
+    });
+  }
+  stationCounter = 0;
+  stations = (state.stations || []).map(s => {
+    stationCounter = Math.max(stationCounter, s.id || 0);
+    return s;
+  });
+  if(stations.length === 0) addStation();
+  else renderStations();
+}
+
+function markDirty(){
+  // reserved for future unsaved-changes indication
+}
+
+// init
+renderOutcomes();
+renderCompetencies();
+addStation();
+refreshCandidateList();
+</script>
+</body>
+</html>
