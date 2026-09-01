@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Purchase Order Planner — MisEnPlace</title>
+<style>
+:root{
+  --bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.1);
+  --text:#1A1612;--muted:#7A7068;--hint:#A09890;
+  --accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--amber:#BA7517;--purple:#7F77DD;
+  --critical:#C94040;--warning:#BA7517;--ok:#2D8C5A;--overstock:#7F77DD;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+a{color:inherit;text-decoration:none;}
+
+/* ── Global settings bar ── */
+.global-bar{background:var(--card);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;position:sticky;top:0;z-index:100;}
+.global-bar-brand{display:flex;align-items:center;gap:8px;margin-right:8px;}
+.brand-mark{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-mark svg{color:#fff;}
+.brand-name{font-size:14px;font-weight:700;color:var(--text);}
+.gbar-sep{width:1px;height:20px;background:var(--border);}
+.gbar-field{display:flex;align-items:center;gap:7px;}
+.gbar-label{font-size:11px;color:var(--hint);font-weight:600;white-space:nowrap;}
+.gbar-select,.gbar-input{padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:var(--card);outline:none;font-family:inherit;}
+.gbar-select:focus,.gbar-input:focus{border-color:var(--accent);}
+.gbar-right{margin-left:auto;display:flex;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;font-family:inherit;white-space:nowrap;}
+.btn:hover{opacity:.88;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent);}
+.btn-teal{background:#1A6640;color:#fff;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* ── Page ── */
+.page{max-width:1200px;margin:0 auto;padding:24px 20px 80px;}
+
+/* ── Summary bar ── */
+.summary-bar{display:none;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;}
+.summary-bar.visible{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.sum-stat{display:flex;flex-direction:column;gap:2px;padding:0 20px;border-right:0.5px solid var(--border);}
+.sum-stat:first-child{padding-left:0;}
+.sum-stat:last-child{border-right:none;}
+.sum-label{font-size:10.5px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;}
+.sum-val{font-size:20px;font-weight:700;color:var(--text);}
+.sum-val.critical{color:var(--critical);}
+.sum-val.warning{color:var(--warning);}
+.sum-val.teal{color:var(--teal);}
+.sum-actions{margin-left:auto;display:flex;gap:8px;}
+
+/* ── Upload / add zone ── */
+.input-zone{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;}
+.input-zone-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.input-zone-title{font-size:13px;font-weight:700;color:var(--text);}
+.input-zone-body{display:flex;gap:14px;flex-wrap:wrap;}
+.upload-drop{flex:1;min-width:280px;border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;}
+.upload-drop:hover,.upload-drop.drag-over{border-color:var(--accent);background:rgba(155,94,40,0.03);}
+.upload-drop input{display:none;}
+.ud-icon{font-size:28px;margin-bottom:8px;}
+.ud-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.ud-sub{font-size:12px;color:var(--muted);}
+.ud-link{color:var(--accent);font-weight:600;cursor:pointer;}
+.manual-add{flex:0 0 260px;display:flex;flex-direction:column;gap:8px;}
+.manual-add-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px;}
+.mfield{display:flex;flex-direction:column;gap:3px;}
+.mfield label{font-size:11px;color:var(--hint);}
+.mfield input,.mfield select{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:var(--card);outline:none;font-family:inherit;}
+.mfield input:focus,.mfield select:focus{border-color:var(--accent);}
+
+/* ── View toggle ── */
+.view-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--surface);width:fit-content;margin-bottom:14px;}
+.vt-btn{padding:8px 18px;font-size:13px;font-weight:600;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:inherit;transition:all .15s;}
+.vt-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+
+/* ── Filter bar ── */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-pills{display:flex;gap:6px;}
+.fpill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;font-family:inherit;}
+.fpill.active{border-color:transparent;}
+.fpill.all.active{background:var(--text);color:#fff;}
+.fpill.critical.active{background:var(--critical);color:#fff;border-color:var(--critical);}
+.fpill.warning.active{background:var(--warning);color:#fff;border-color:var(--warning);}
+.fpill.ok.active{background:var(--ok);color:#fff;border-color:var(--ok);}
+.fpill.overstock.active{background:var(--overstock);color:#fff;border-color:var(--overstock);}
+.filter-search{flex:1;max-width:280px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:var(--card);outline:none;font-family:inherit;}
+.filter-search:focus{border-color:var(--accent);}
+.filter-supplier{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:var(--card);outline:none;font-family:inherit;}
+.row-count{font-size:12px;color:var(--hint);margin-left:auto;}
+
+/* ── Main table ── */
+.table-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card);}
+.sku-table{width:100%;border-collapse:collapse;font-size:13px;}
+.sku-table th{font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+.sku-table th:hover{color:var(--accent);}
+.sku-table th.sort-asc::after{content:' ↑';}
+.sku-table th.sort-desc::after{content:' ↓';}
+.sku-table td{padding:10px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
+.sku-table tr:last-child td{border-bottom:none;}
+.sku-table tr:hover td{background:rgba(155,94,40,0.025);}
+
+/* ── Status badge ── */
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.status-badge.critical{background:rgba(201,64,64,0.12);color:var(--critical);}
+.status-badge.warning{background:rgba(186,117,23,0.12);color:var(--warning);}
+.status-badge.ok{background:rgba(45,140,90,0.12);color:var(--ok);}
+.status-badge.overstock{background:rgba(127,119,221,0.12);color:var(--overstock);}
+
+/* ── Inline override input ── */
+.override-input{width:72px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:right;color:var(--text);background:var(--card);font-family:inherit;outline:none;}
+.override-input:focus{border-color:var(--accent);}
+.override-input.changed{border-color:var(--accent);background:rgba(155,94,40,0.04);}
+
+/* ── SKU name cell ── */
+.sku-id{font-size:10.5px;color:var(--hint);display:block;}
+.sku-name-cell{display:flex;flex-direction:column;gap:1px;}
+
+/* ── Days-of-stock bar ── */
+.dos-bar-wrap{display:flex;align-items:center;gap:8px;}
+.dos-bar{width:60px;height:6px;background:var(--surface);border-radius:3px;overflow:hidden;flex-shrink:0;}
+.dos-fill{height:100%;border-radius:3px;}
+.dos-num{font-size:13px;font-weight:600;white-space:nowrap;}
+
+/* ── PO view ── */
+.po-group{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.po-group-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--border);}
+.po-supplier{font-size:14px;font-weight:700;color:var(--text);}
+.po-meta{font-size:12px;color:var(--muted);}
+.po-table{width:100%;border-collapse:collapse;font-size:13px;}
+.po-table th{font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;padding:9px 14px;background:rgba(242,239,233,0.5);border-bottom:0.5px solid var(--border);white-space:nowrap;}
+.po-table td{padding:10px 14px;border-bottom:0.5px solid var(--border);color:var(--muted);}
+.po-table td:first-child{font-weight:500;color:var(--text);}
+.po-table tr:last-child td{border-bottom:none;}
+.po-table tfoot td{font-weight:700;color:var(--text);background:var(--surface);border-top:1px solid var(--border);}
+.po-total-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--text);color:#fff;border-radius:10px;margin-bottom:16px;}
+.po-total-label{font-size:13px;opacity:.7;}
+.po-total-val{font-size:18px;font-weight:700;}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state p{font-size:14px;margin-bottom:6px;}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,22,18,0.4);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border-radius:14px;padding:28px 28px;width:540px;max-width:92vw;max-height:88vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+@media(max-width:800px){.global-bar{gap:10px;}.sum-stat{padding:0 12px;}.sku-table{font-size:12px;}.sku-table th,.sku-table td{padding:8px 8px;}.dos-bar{display:none;}}
+</style>
+</head>
+<body>
+
+<!-- ── Global settings bar ── -->
+<div class="global-bar">
+  <div class="global-bar-brand">
+    <div class="brand-mark">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    </div>
+    <span class="brand-name">Purchase Planner</span>
+  </div>
+  <div class="gbar-sep"></div>
+  <div class="gbar-field">
+    <span class="gbar-label">Planning horizon</span>
+    <select class="gbar-select" id="horizonSelect" onchange="recalcAll()">
+      <option value="30">30 days</option>
+      <option value="60" selected>60 days</option>
+      <option value="90">90 days</option>
+    </select>
+  </div>
+  <div class="gbar-field">
+    <span class="gbar-label">Service level</span>
+    <select class="gbar-select" id="globalSL" onchange="recalcAll()">
+      <option value="1.28">90%</option>
+      <option value="1.65" selected>95%</option>
+      <option value="1.96">97.5%</option>
+      <option value="2.33">99%</option>
+    </select>
+  </div>
+  <div class="gbar-field">
+    <span class="gbar-label">Order date</span>
+    <input type="date" class="gbar-input" id="orderDate"/>
+  </div>
+  <div class="gbar-right">
+    <a href="../index.html" class="btn btn-secondary btn-sm">← All tools</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ── Summary bar ── -->
+  <div class="summary-bar" id="summaryBar">
+    <div class="sum-stat"><span class="sum-label">Total SKUs</span><span class="sum-val" id="sumTotal">0</span></div>
+    <div class="sum-stat"><span class="sum-label">Critical 🔴</span><span class="sum-val critical" id="sumCritical">0</span></div>
+    <div class="sum-stat"><span class="sum-label">Warning 🟡</span><span class="sum-val warning" id="sumWarning">0</span></div>
+    <div class="sum-stat"><span class="sum-label">OK 🟢</span><span class="sum-val teal" id="sumOK">0</span></div>
+    <div class="sum-stat"><span class="sum-label">Overstock</span><span class="sum-val" style="color:var(--overstock)" id="sumOver">0</span></div>
+    <div class="sum-stat"><span class="sum-label">SKUs to order</span><span class="sum-val" id="sumToOrder">0</span></div>
+    <div class="sum-stat"><span class="sum-label">Total order cost</span><span class="sum-val" id="sumCost">—</span></div>
+    <div class="sum-actions">
+      <button class="btn btn-secondary btn-sm" onclick="clearAll()">Clear all</button>
+      <button class="btn btn-primary btn-sm" onclick="setView('po')">View purchase orders →</button>
+    </div>
+  </div>
+
+  <!-- ── Upload / add zone ── -->
+  <div class="input-zone" id="inputZone">
+    <div class="input-zone-header">
+      <span class="input-zone-title">Load your SKU catalog</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="downloadTemplate()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download template
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="loadDemo()">Load demo (30 SKUs)</button>
+      </div>
+    </div>
+    <div class="input-zone-body">
+      <div class="upload-drop" id="uploadDrop" onclick="document.getElementById('fileInput').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])"/>
+        <div class="ud-icon">📂</div>
+        <p class="ud-title">Drop your SKU file here</p>
+        <p class="ud-sub">or <span class="ud-link">click to browse</span> — .xlsx or .csv</p>
+        <p class="ud-sub" style="margin-top:6px;font-size:11px;">Required columns: SKU_ID, SKU_NAME, SUPPLIER, UNIT_COST, ON_HAND, DAILY_SALES, LEAD_TIME_DAYS, MOQ</p>
+      </div>
+      <div class="manual-add">
+        <p class="manual-add-title">Or add a single SKU</p>
+        <div class="mfield"><label>SKU ID</label><input type="text" id="m_id" placeholder="SKU-001"/></div>
+        <div class="mfield"><label>SKU name</label><input type="text" id="m_name" placeholder="Protein Bar – Chocolate"/></div>
+        <div class="mfield"><label>Supplier</label><input type="text" id="m_supplier" placeholder="Supplier name"/></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="mfield"><label>Unit cost ($)</label><input type="number" id="m_cost" value="3.50" step="0.01" min="0"/></div>
+          <div class="mfield"><label>On hand (units)</label><input type="number" id="m_onhand" value="0" min="0"/></div>
+          <div class="mfield"><label>In transit</label><input type="number" id="m_transit" value="0" min="0"/></div>
+          <div class="mfield"><label>Daily sales</label><input type="number" id="m_sales" value="10" min="0"/></div>
+          <div class="mfield"><label>Lead time (days)</label><input type="number" id="m_lt" value="21" min="1"/></div>
+          <div class="mfield"><label>MOQ (units)</label><input type="number" id="m_moq" value="100" min="1"/></div>
+          <div class="mfield"><label>Demand SD</label><input type="number" id="m_sd" value="0" min="0"/></div>
+          <div class="mfield"><label>Case pack</label><input type="number" id="m_case" value="1" min="1"/></div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:4px;" onclick="addManualSKU()">Add SKU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Catalog / PO view ── -->
+  <div id="mainContent" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <div class="view-toggle">
+        <button class="vt-btn active" id="vtCatalog" onclick="setView('catalog')">📋 Catalog view</button>
+        <button class="vt-btn" id="vtPO" onclick="setView('po')">📦 Purchase orders</button>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('addModal').classList.add('open')">+ Add SKU</button>
+    </div>
+
+    <!-- CATALOG VIEW -->
+    <div id="catalogView">
+      <div class="filter-bar">
+        <div class="filter-pills">
+          <button class="fpill all active" onclick="setFilter('all',this)">All</button>
+          <button class="fpill critical" onclick="setFilter('critical',this)">🔴 Critical</button>
+          <button class="fpill warning" onclick="setFilter('warning',this)">🟡 Warning</button>
+          <button class="fpill ok" onclick="setFilter('ok',this)">🟢 OK</button>
+          <button class="fpill overstock" onclick="setFilter('overstock',this)">Overstock</button>
+        </div>
+        <input class="filter-search" type="text" placeholder="Search SKU name or ID…" id="searchInput" oninput="renderCatalog()"/>
+        <select class="filter-supplier" id="supplierFilter" onchange="renderCatalog()">
+          <option value="">All suppliers</option>
+        </select>
+        <span class="row-count" id="rowCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="sku-table" id="skuTable">
+          <thead>
+            <tr>
+              <th onclick="sortBy('name')">SKU</th>
+              <th onclick="sortBy('supplier')">Supplier</th>
+              <th onclick="sortBy('onHand')">On Hand</th>
+              <th onclick="sortBy('inTransit')">In Transit</th>
+              <th onclick="sortBy('dailySales')">Daily Sales</th>
+              <th onclick="sortBy('daysOfStock')">Days of Stock</th>
+              <th onclick="sortBy('safetyStock')">Safety Stock</th>
+              <th onclick="sortBy('rop')">ROP</th>
+              <th onclick="sortBy('status')">Status</th>
+              <th onclick="sortBy('recOrderQty')">Rec. Order Qty</th>
+              <th onclick="sortBy('orderCost')">Order Cost</th>
+              <th onclick="sortBy('arrivalDate')">Arrives</th>
+              <th>Override Qty</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="catalogBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PO VIEW -->
+    <div id="poView" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <p style="font-size:14px;font-weight:600;">Purchase orders — <span id="poSkuCount">0</span> SKUs needing orders</p>
+          <p style="font-size:12px;color:var(--muted);">Order quantities use your overrides where set, otherwise the recommended quantity.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="exportPO_CSV()">Export CSV</button>
+          <button class="btn btn-teal btn-sm" onclick="exportPO_Excel()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Excel (by supplier)
+          </button>
+        </div>
+      </div>
+      <div id="poContent"></div>
+    </div>
+  </div>
+
+</div><!-- .page -->
+
+<!-- ── Add SKU modal ── -->
+<div class="modal-overlay" id="addModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <p class="modal-title">Add SKU</p>
+    <p class="modal-sub">Add a single SKU to the catalog. All fields except Demand SD and Case Pack are required.</p>
+    <div class="modal-grid">
+      <div class="mfield"><label>SKU ID</label><input type="text" id="am_id" placeholder="SKU-001"/></div>
+      <div class="mfield"><label>SKU name</label><input type="text" id="am_name" placeholder="Product name"/></div>
+      <div class="mfield"><label>Supplier</label><input type="text" id="am_supplier" placeholder="Supplier name"/></div>
+      <div class="mfield"><label>Category (optional)</label><input type="text" id="am_cat" placeholder="e.g. Bars"/></div>
+      <div class="mfield"><label>Unit cost ($)</label><input type="number" id="am_cost" value="3.50" step="0.01" min="0"/></div>
+      <div class="mfield"><label>On hand (units)</label><input type="number" id="am_onhand" value="0" min="0"/></div>
+      <div class="mfield"><label>In transit (units)</label><input type="number" id="am_transit" value="0" min="0"/></div>
+      <div class="mfield"><label>Daily sales (units)</label><input type="number" id="am_sales" value="10" step="0.1" min="0"/></div>
+      <div class="mfield"><label>Demand std dev (units/day)</label><input type="number" id="am_sd" value="0" min="0"/><span style="font-size:10px;color:var(--hint);">Leave 0 to use 20% of daily sales</span></div>
+      <div class="mfield"><label>Lead time (days)</label><input type="number" id="am_lt" value="21" min="1"/></div>
+      <div class="mfield"><label>MOQ (units)</label><input type="number" id="am_moq" value="100" min="1"/></div>
+      <div class="mfield"><label>Case pack size</label><input type="number" id="am_case" value="1" min="1"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="document.getElementById('addModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="addModalSKU()">Add to catalog</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── State ─────────────────────────────────────────
+let skuData = [];        // master array
+let sortCol = 'status';
+let sortDir = 'asc';
+let filterStatus = 'all';
+let skuCounter = 0;
+
+// ── Init ──────────────────────────────────────────
+document.getElementById('orderDate').value = new Date().toISOString().slice(0,10);
+
+// ── Helpers ──────────────────────────────────────
+const vn = id => parseFloat(document.getElementById(id)?.value) || 0;
+const vs = id => (document.getElementById(id)?.value || '').trim();
+
+function fmt$(n){ return '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt$0(n){ return '$' + Math.abs(Math.round(n)).toLocaleString(); }
+function fmtN(n){ return Math.round(n).toLocaleString(); }
+function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
+
+function addDays(dateStr, days){
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + Math.round(days));
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+// ── Calculation engine ────────────────────────────
+function calcSKU(sku){
+  const z = parseFloat(document.getElementById('globalSL').value) || 1.65;
+  const horizon = parseInt(document.getElementById('horizonSelect').value) || 60;
+  const orderDate = vs('orderDate') || new Date().toISOString().slice(0,10);
+
+  const sd = sku.demandSD > 0 ? sku.demandSD : sku.dailySales * 0.20;
+  const safetyStock = Math.round(z * sd * Math.sqrt(sku.leadTime));
+  const rop = Math.round(sku.dailySales * sku.leadTime + safetyStock);
+  const available = sku.onHand + sku.inTransit;
+  const daysOfStock = sku.dailySales > 0 ? available / sku.dailySales : 999;
+
+  // Status
+  let status;
+  if(sku.dailySales === 0){ status = 'ok'; }
+  else if(daysOfStock < sku.leadTime){ status = 'critical'; }
+  else if(available <= rop){ status = 'warning'; }
+  else if(daysOfStock > horizon * 2){ status = 'overstock'; }
+  else { status = 'ok'; }
+
+  // Recommended order quantity
+  const needed = sku.dailySales * horizon + safetyStock - available;
+  let recOrderQty = 0;
+  if(needed > 0 || status === 'critical' || status === 'warning'){
+    const raw = Math.max(needed, sku.moq);
+    const cp = sku.casePack || 1;
+    recOrderQty = Math.ceil(raw / cp) * cp;
+    recOrderQty = Math.max(recOrderQty, sku.moq);
+  }
+  const effectiveQty = (sku.overrideQty !== null && sku.overrideQty !== undefined && sku.overrideQty !== '') ? Number(sku.overrideQty) : recOrderQty;
+  const orderCost = effectiveQty * sku.unitCost;
+  const arrivalDate = addDays(orderDate, sku.leadTime);
+
+  return { ...sku, safetyStock, rop, available, daysOfStock, status, recOrderQty, effectiveQty, orderCost, arrivalDate };
+}
+
+function recalcAll(){
+  skuData = skuData.map(s => calcSKU(s));
+  renderAll();
+}
+
+// ── Ingest a row of data ──────────────────────────
+function normHeader(h){ return String(h||'').trim().toUpperCase().replace(/[\s\-\/]+/g,'_'); }
+
+function ingestRows(rows){
+  // rows: array of objects keyed by normalized column name
+  let added = 0;
+  rows.forEach(row => {
+    const id = row['SKU_ID'] || row['SKUID'] || row['ID'] || ('SKU-'+(++skuCounter).toString().padStart(3,'0'));
+    const name = row['SKU_NAME'] || row['SKUNAME'] || row['NAME'] || row['PRODUCT'] || '';
+    if(!name && !id) return;
+    const sku = {
+      _uid: ++skuCounter,
+      id: String(id).trim(),
+      name: String(name).trim(),
+      supplier: String(row['SUPPLIER'] || row['VENDOR'] || '').trim(),
+      category: String(row['CATEGORY'] || row['CAT'] || '').trim(),
+      unitCost: parseFloat(row['UNIT_COST'] || row['COST'] || row['UNITCOST'] || 0) || 0,
+      onHand: parseFloat(row['ON_HAND'] || row['ONHAND'] || row['INVENTORY'] || row['QOH'] || 0) || 0,
+      inTransit: parseFloat(row['IN_TRANSIT'] || row['INTRANSIT'] || row['ON_ORDER'] || 0) || 0,
+      dailySales: parseFloat(row['DAILY_SALES'] || row['DAILYSALES'] || row['AVG_DAILY'] || row['VELOCITY'] || 0) || 0,
+      demandSD: parseFloat(row['DEMAND_SD'] || row['DEMANDSD'] || row['SD'] || 0) || 0,
+      leadTime: parseFloat(row['LEAD_TIME_DAYS'] || row['LEAD_TIME'] || row['LEADTIME'] || row['LT'] || 21) || 21,
+      moq: parseFloat(row['MOQ'] || row['MIN_ORDER'] || 1) || 1,
+      casePack: parseFloat(row['CASE_PACK'] || row['CASEPACK'] || row['PACK_SIZE'] || 1) || 1,
+      overrideQty: null,
+    };
+    skuData.push(calcSKU(sku));
+    added++;
+  });
+  return added;
+}
+
+// ── File handling ─────────────────────────────────
+function dragOver(e){ e.preventDefault(); document.getElementById('uploadDrop').classList.add('drag-over'); }
+function dragLeave(){ document.getElementById('uploadDrop').classList.remove('drag-over'); }
+function dropFile(e){ e.preventDefault(); document.getElementById('uploadDrop').classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); }
+
+function handleFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, {raw:false, defval:''});
+      // Normalize headers
+      const rows = raw.map(row => {
+        const norm = {};
+        Object.keys(row).forEach(k => { norm[normHeader(k)] = row[k]; });
+        return norm;
+      });
+      const added = ingestRows(rows);
+      renderAll();
+      alert(`Loaded ${added} SKUs from ${file.name}.`);
+    } catch(err){
+      alert('Could not read file: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── Template download ─────────────────────────────
+function downloadTemplate(){
+  if(typeof XLSX === 'undefined'){ alert('Excel library loading — try again.'); return; }
+  const headers = ['SKU_ID','SKU_NAME','SUPPLIER','CATEGORY','UNIT_COST','ON_HAND','IN_TRANSIT','DAILY_SALES','DEMAND_SD','LEAD_TIME_DAYS','MOQ','CASE_PACK'];
+  const examples = [
+    ['SKU-001','Protein Bar – Chocolate','Precision Nutrition','Bars',3.50,1200,0,40,8,28,500,12],
+    ['SKU-002','Protein Bar – Vanilla','Precision Nutrition','Bars',3.50,300,500,35,7,28,500,12],
+    ['SKU-003','Electrolyte Powder','Vitapack Co.','Powders',2.10,800,0,25,5,35,200,24],
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...examples]);
+  ws['!cols'] = headers.map((_,i) => ({wch: i<2?28:i<4?18:14}));
+  XLSX.utils.book_append_sheet(wb, ws, 'SKUs');
+  // Instructions
+  const instr = [
+    ['MisEnPlace Purchase Planner — Template Instructions'],
+    [],
+    ['Required columns:'],
+    ['SKU_ID', 'Unique identifier for this SKU (text)'],
+    ['SKU_NAME', 'Product name (text)'],
+    ['SUPPLIER', 'Supplier name (text)'],
+    ['UNIT_COST', 'Cost per unit in USD (number)'],
+    ['ON_HAND', 'Units currently in your warehouse (number)'],
+    ['DAILY_SALES', 'Average units sold per day (number)'],
+    ['LEAD_TIME_DAYS', 'Days from PO to receipt (number)'],
+    ['MOQ', 'Minimum order quantity in units (number)'],
+    [],
+    ['Optional columns:'],
+    ['CATEGORY', 'Product category (text)'],
+    ['IN_TRANSIT', 'Units already on order / in transit (number, default 0)'],
+    ['DEMAND_SD', 'Demand std dev in units/day — leave 0 to use 20% of daily sales'],
+    ['CASE_PACK', 'Order rounding unit — orders will be rounded to multiples (number, default 1)'],
+    [],
+    ['Notes:'],
+    ['- Column headers are case-insensitive and spaces/dashes are ignored'],
+    ['- You can add extra columns — the tool will ignore them'],
+    ['- Delete the example rows before uploading your real data'],
+    ['- Save as .xlsx or .csv'],
+  ];
+  const wsI = XLSX.utils.aoa_to_sheet(instr);
+  wsI['!cols'] = [{wch:22},{wch:60}];
+  XLSX.utils.book_append_sheet(wb, wsI, 'Instructions');
+  XLSX.writeFile(wb, 'MisEnPlace_Purchase_Template.xlsx');
+}
+
+// ── Manual add (inline) ───────────────────────────
+function addManualSKU(){
+  const name = vs('m_name');
+  if(!name){ alert('SKU name is required.'); return; }
+  const sku = {
+    _uid: ++skuCounter,
+    id: vs('m_id') || 'SKU-'+skuCounter.toString().padStart(3,'0'),
+    name, supplier: vs('m_supplier'), category: '',
+    unitCost: vn('m_cost'), onHand: vn('m_onhand'), inTransit: vn('m_transit'),
+    dailySales: vn('m_sales'), demandSD: vn('m_sd'),
+    leadTime: vn('m_lt'), moq: vn('m_moq'), casePack: vn('m_case')||1, overrideQty: null,
+  };
+  skuData.push(calcSKU(sku));
+  ['m_id','m_name','m_supplier'].forEach(id => document.getElementById(id).value='');
+  renderAll();
+}
+
+// ── Modal add ─────────────────────────────────────
+function addModalSKU(){
+  const name = vs('am_name');
+  if(!name){ alert('SKU name is required.'); return; }
+  const sku = {
+    _uid: ++skuCounter,
+    id: vs('am_id') || 'SKU-'+skuCounter.toString().padStart(3,'0'),
+    name, supplier: vs('am_supplier'), category: vs('am_cat'),
+    unitCost: parseFloat(document.getElementById('am_cost').value)||0,
+    onHand: parseFloat(document.getElementById('am_onhand').value)||0,
+    inTransit: parseFloat(document.getElementById('am_transit').value)||0,
+    dailySales: parseFloat(document.getElementById('am_sales').value)||0,
+    demandSD: parseFloat(document.getElementById('am_sd').value)||0,
+    leadTime: parseFloat(document.getElementById('am_lt').value)||21,
+    moq: parseFloat(document.getElementById('am_moq').value)||1,
+    casePack: parseFloat(document.getElementById('am_case').value)||1,
+    overrideQty: null,
+  };
+  skuData.push(calcSKU(sku));
+  document.getElementById('addModal').classList.remove('open');
+  renderAll();
+}
+
+// ── Remove SKU ────────────────────────────────────
+function removeSKU(uid){
+  skuData = skuData.filter(s => s._uid !== uid);
+  renderAll();
+}
+
+// ── Override handling ─────────────────────────────
+function setOverride(uid, val){
+  const s = skuData.find(s => s._uid === uid);
+  if(!s) return;
+  s.overrideQty = val === '' ? null : parseInt(val) || 0;
+  const recalc = calcSKU(s);
+  Object.assign(s, recalc);
+  updateSummary();
+  if(document.getElementById('poView').style.display !== 'none') renderPO();
+}
+
+// ── Sort ──────────────────────────────────────────
+const STATUS_ORDER = {critical:0,warning:1,ok:2,overstock:3};
+function sortBy(col){
+  if(sortCol === col){ sortDir = sortDir==='asc'?'desc':'asc'; }
+  else { sortCol = col; sortDir = col==='daysOfStock'||col==='status'?'asc':'desc'; }
+  renderCatalog();
+  document.querySelectorAll('.sku-table th').forEach(th=>{th.classList.remove('sort-asc','sort-desc');});
+  // Can't easily target by col here, skip header update for brevity
+}
+
+function getSortedFiltered(){
+  let rows = [...skuData];
+  // Filter status
+  if(filterStatus !== 'all') rows = rows.filter(r => r.status === filterStatus);
+  // Filter search
+  const q = (document.getElementById('searchInput')?.value||'').toLowerCase();
+  if(q) rows = rows.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || r.supplier.toLowerCase().includes(q));
+  // Filter supplier
+  const sup = document.getElementById('supplierFilter')?.value||'';
+  if(sup) rows = rows.filter(r => r.supplier === sup);
+  // Sort
+  rows.sort((a,b)=>{
+    let av = a[sortCol], bv = b[sortCol];
+    if(sortCol === 'status'){ av = STATUS_ORDER[av]??99; bv = STATUS_ORDER[bv]??99; }
+    if(typeof av === 'string') return sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+    return sortDir==='asc'?(av-bv):(bv-av);
+  });
+  return rows;
+}
+
+// ── Filter pill ───────────────────────────────────
+function setFilter(status, btn){
+  filterStatus = status;
+  document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  renderCatalog();
+}
+
+// ── Supplier dropdown ─────────────────────────────
+function refreshSupplierList(){
+  const sel = document.getElementById('supplierFilter');
+  const current = sel.value;
+  const suppliers = [...new Set(skuData.map(s=>s.supplier).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All suppliers</option>' + suppliers.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  if(suppliers.includes(current)) sel.value = current;
+}
+
+// ── View toggle ───────────────────────────────────
+function setView(v){
+  document.getElementById('catalogView').style.display = v==='catalog' ? '' : 'none';
+  document.getElementById('poView').style.display = v==='po' ? '' : 'none';
+  document.getElementById('vtCatalog').classList.toggle('active', v==='catalog');
+  document.getElementById('vtPO').classList.toggle('active', v==='po');
+  if(v==='po') renderPO();
+}
+
+// ── Escape helper ─────────────────────────────────
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Catalog render ────────────────────────────────
+function renderCatalog(){
+  const rows = getSortedFiltered();
+  document.getElementById('rowCount').textContent = rows.length + ' SKU' + (rows.length!==1?'s':'');
+
+  const STATUS_ICON = {critical:'🔴',warning:'🟡',ok:'🟢',overstock:'⬜'};
+
+  const html = rows.map(s => {
+    const dos = s.daysOfStock === 999 ? '—' : s.daysOfStock.toFixed(1)+'d';
+    const horizon = parseInt(document.getElementById('horizonSelect').value)||60;
+    const dosPct = s.daysOfStock === 999 ? 100 : clamp(s.daysOfStock / (horizon*1.5) * 100, 0, 100);
+    const dosColor = s.status==='critical'?'var(--critical)':s.status==='warning'?'var(--warning)':s.status==='overstock'?'var(--overstock)':'var(--ok)';
+    const ov = s.overrideQty !== null && s.overrideQty !== undefined ? s.overrideQty : '';
+    const effQty = ov !== '' ? Number(ov) : s.recOrderQty;
+    return `<tr>
+      <td><div class="sku-name-cell"><span>${esc(s.name)}</span><span class="sku-id">${esc(s.id)}</span></div></td>
+      <td>${esc(s.supplier)||'—'}</td>
+      <td>${fmtN(s.onHand)}</td>
+      <td>${fmtN(s.inTransit)}</td>
+      <td>${s.dailySales.toFixed(1)}</td>
+      <td>
+        <div class="dos-bar-wrap">
+          <div class="dos-bar"><div class="dos-fill" style="width:${dosPct}%;background:${dosColor}"></div></div>
+          <span class="dos-num" style="color:${dosColor}">${dos}</span>
+        </div>
+      </td>
+      <td>${fmtN(s.safetyStock)}</td>
+      <td>${fmtN(s.rop)}</td>
+      <td><span class="status-badge ${s.status}">${STATUS_ICON[s.status]} ${s.status.charAt(0).toUpperCase()+s.status.slice(1)}</span></td>
+      <td style="font-weight:${s.recOrderQty>0?'700':'400'};color:${s.recOrderQty>0?'var(--text)':'var(--hint)'}">${s.recOrderQty>0?fmtN(s.recOrderQty):'—'}</td>
+      <td style="color:${effQty>0?'var(--text)':'var(--hint)'}">${effQty>0?fmt$(effQty*s.unitCost):'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${effQty>0?s.arrivalDate:'—'}</td>
+      <td><input class="override-input${ov!==''?' changed':''}" type="number" value="${ov}" placeholder="${s.recOrderQty||0}" min="0" onchange="setOverride(${s._uid},this.value)" oninput="this.className='override-input'+(this.value!==''?' changed':'')"/></td>
+      <td><button onclick="removeSKU(${s._uid})" style="background:none;border:none;color:var(--hint);cursor:pointer;font-size:13px;padding:2px 6px;" title="Remove">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('catalogBody').innerHTML = html || `<tr><td colspan="14" style="text-align:center;padding:32px;color:var(--hint);">No SKUs match the current filter.</td></tr>`;
+}
+
+// ── PO render ─────────────────────────────────────
+function renderPO(){
+  const toOrder = skuData.filter(s => {
+    const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+    return qty > 0;
+  });
+
+  document.getElementById('poSkuCount').textContent = toOrder.length;
+
+  if(!toOrder.length){
+    document.getElementById('poContent').innerHTML = `<div class="empty-state"><p style="font-size:28px;margin-bottom:10px">✅</p><p style="font-weight:600;font-size:15px">No orders needed</p><p>All SKUs have sufficient stock for your ${document.getElementById('horizonSelect').value}-day planning horizon.</p></div>`;
+    return;
+  }
+
+  // Group by supplier
+  const bySupplier = {};
+  toOrder.forEach(s => {
+    const sup = s.supplier || 'Unknown Supplier';
+    if(!bySupplier[sup]) bySupplier[sup] = [];
+    bySupplier[sup].push(s);
+  });
+
+  let grandTotal = 0;
+  toOrder.forEach(s => {
+    const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+    grandTotal += qty * s.unitCost;
+  });
+
+  let html = `<div class="po-total-bar"><span class="po-total-label">Total order value across all suppliers</span><span class="po-total-val">${fmt$0(grandTotal)}</span></div>`;
+
+  Object.entries(bySupplier).sort().forEach(([sup, skus]) => {
+    const supTotal = skus.reduce((acc, s) => {
+      const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+      return acc + qty * s.unitCost;
+    }, 0);
+
+    html += `<div class="po-group">
+      <div class="po-group-header">
+        <span class="po-supplier">${esc(sup)}</span>
+        <span class="po-meta">${skus.length} SKU${skus.length!==1?'s':''} · Order total: <strong>${fmt$0(supTotal)}</strong></span>
+      </div>
+      <table class="po-table">
+        <thead><tr>
+          <th>SKU</th><th>SKU Name</th><th>Status</th>
+          <th>On Hand</th><th>Daily Sales</th><th>Days of Stock</th>
+          <th>Rec. Qty</th><th>Order Qty</th><th>Unit Cost</th><th>Line Total</th><th>Lead Time</th><th>Arrives</th>
+        </tr></thead>
+        <tbody>`;
+
+    skus.forEach(s => {
+      const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+      const isOverride = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '';
+      const STATUS_ICON = {critical:'🔴',warning:'🟡',ok:'🟢',overstock:'⬜'};
+      html += `<tr>
+        <td style="font-size:11px;color:var(--hint)">${esc(s.id)}</td>
+        <td style="font-weight:500;color:var(--text)">${esc(s.name)}</td>
+        <td><span class="status-badge ${s.status}">${STATUS_ICON[s.status]} ${s.status.charAt(0).toUpperCase()+s.status.slice(1)}</span></td>
+        <td>${fmtN(s.onHand)}</td>
+        <td>${s.dailySales.toFixed(1)}</td>
+        <td style="color:${s.status==='critical'?'var(--red)':s.status==='warning'?'var(--amber)':'inherit'}">${s.daysOfStock===999?'—':s.daysOfStock.toFixed(1)+'d'}</td>
+        <td style="color:var(--hint)">${fmtN(s.recOrderQty)}</td>
+        <td style="font-weight:700;color:${isOverride?'var(--accent)':'var(--text)'}">${fmtN(qty)}${isOverride?' ✏️':''}</td>
+        <td>${fmt$(s.unitCost)}</td>
+        <td style="font-weight:600">${fmt$0(qty*s.unitCost)}</td>
+        <td>${s.leadTime}d</td>
+        <td style="color:var(--muted)">${s.arrivalDate}</td>
+      </tr>`;
+    });
+
+    html += `</tbody>
+        <tfoot><tr>
+          <td colspan="9" style="text-align:right;font-size:11px;color:var(--hint);">Supplier total →</td>
+          <td>${fmt$0(supTotal)}</td><td colspan="2"></td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  });
+
+  document.getElementById('poContent').innerHTML = html;
+}
+
+// ── Summary update ────────────────────────────────
+function updateSummary(){
+  if(!skuData.length){
+    document.getElementById('summaryBar').classList.remove('visible');
+    document.getElementById('mainContent').style.display = 'none';
+    return;
+  }
+  document.getElementById('summaryBar').classList.add('visible');
+  document.getElementById('mainContent').style.display = '';
+
+  const counts = {critical:0,warning:0,ok:0,overstock:0};
+  let toOrder = 0, totalCost = 0;
+  skuData.forEach(s => {
+    counts[s.status]++;
+    const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+    if(qty > 0){ toOrder++; totalCost += qty * s.unitCost; }
+  });
+
+  document.getElementById('sumTotal').textContent = skuData.length;
+  document.getElementById('sumCritical').textContent = counts.critical;
+  document.getElementById('sumWarning').textContent = counts.warning;
+  document.getElementById('sumOK').textContent = counts.ok;
+  document.getElementById('sumOver').textContent = counts.overstock;
+  document.getElementById('sumToOrder').textContent = toOrder;
+  document.getElementById('sumCost').textContent = toOrder > 0 ? fmt$0(totalCost) : '—';
+}
+
+// ── Full render ───────────────────────────────────
+function renderAll(){
+  updateSummary();
+  refreshSupplierList();
+  renderCatalog();
+  if(document.getElementById('poView').style.display !== 'none') renderPO();
+}
+
+// ── Clear all ─────────────────────────────────────
+function clearAll(){
+  if(skuData.length && !confirm('Remove all '+skuData.length+' SKUs?')) return;
+  skuData = [];
+  renderAll();
+}
+
+// ── Demo data ─────────────────────────────────────
+function loadDemo(){
+  const demo = [
+    // Supplier A — 10 SKUs
+    {id:'BAR-001',name:'Protein Bar – Chocolate Fudge',supplier:'Precision Nutrition',category:'Bars',unitCost:3.50,onHand:420,inTransit:0,dailySales:40,demandSD:9,leadTime:28,moq:500,casePack:12},
+    {id:'BAR-002',name:'Protein Bar – Vanilla Almond',supplier:'Precision Nutrition',category:'Bars',unitCost:3.50,onHand:180,inTransit:500,dailySales:35,demandSD:8,leadTime:28,moq:500,casePack:12},
+    {id:'BAR-003',name:'Protein Bar – Peanut Butter',supplier:'Precision Nutrition',category:'Bars',unitCost:3.65,onHand:60,inTransit:0,dailySales:30,demandSD:7,leadTime:28,moq:500,casePack:12},
+    {id:'BAR-004',name:'Protein Bar – Cookies & Cream',supplier:'Precision Nutrition',category:'Bars',unitCost:3.65,onHand:2100,inTransit:0,dailySales:25,demandSD:5,leadTime:28,moq:500,casePack:12},
+    {id:'BAR-005',name:'Collagen Bar – Mixed Berry',supplier:'Precision Nutrition',category:'Bars',unitCost:4.10,onHand:0,inTransit:0,dailySales:15,demandSD:4,leadTime:28,moq:300,casePack:12},
+    // Supplier B — 8 SKUs
+    {id:'PWD-001',name:'Whey Protein – Chocolate 2lb',supplier:'Vitapack Co.',category:'Powders',unitCost:18.00,onHand:350,inTransit:0,dailySales:12,demandSD:3,leadTime:35,moq:100,casePack:4},
+    {id:'PWD-002',name:'Whey Protein – Vanilla 2lb',supplier:'Vitapack Co.',category:'Powders',unitCost:18.00,onHand:90,inTransit:0,dailySales:10,demandSD:3,leadTime:35,moq:100,casePack:4},
+    {id:'PWD-003',name:'Whey Protein – Unflavored 5lb',supplier:'Vitapack Co.',category:'Powders',unitCost:32.00,onHand:45,inTransit:100,dailySales:8,demandSD:2,leadTime:35,moq:50,casePack:2},
+    {id:'ELX-001',name:'Electrolyte Powder – Citrus',supplier:'Vitapack Co.',category:'Supplements',unitCost:2.10,onHand:1800,inTransit:0,dailySales:55,demandSD:12,leadTime:21,moq:1000,casePack:24},
+    {id:'ELX-002',name:'Electrolyte Powder – Berry',supplier:'Vitapack Co.',category:'Supplements',unitCost:2.10,onHand:220,inTransit:0,dailySales:45,demandSD:10,leadTime:21,moq:1000,casePack:24},
+    {id:'ELX-003',name:'Electrolyte Powder – Watermelon',supplier:'Vitapack Co.',category:'Supplements',unitCost:2.10,onHand:50,inTransit:0,dailySales:30,demandSD:8,leadTime:21,moq:1000,casePack:24},
+    // Supplier C — 6 SKUs
+    {id:'SNCK-001',name:'Trail Mix – Classic',supplier:'Nature Snacks LLC',category:'Snacks',unitCost:1.80,onHand:600,inTransit:0,dailySales:70,demandSD:15,leadTime:14,moq:2000,casePack:24},
+    {id:'SNCK-002',name:'Trail Mix – Tropical',supplier:'Nature Snacks LLC',category:'Snacks',unitCost:1.80,onHand:120,inTransit:0,dailySales:50,demandSD:12,leadTime:14,moq:2000,casePack:24},
+    {id:'SNCK-003',name:'Nut Butter Packet – Almond',supplier:'Nature Snacks LLC',category:'Snacks',unitCost:0.95,onHand:3200,inTransit:0,dailySales:80,demandSD:18,leadTime:14,moq:5000,casePack:100},
+    {id:'SNCK-004',name:'Nut Butter Packet – Cashew',supplier:'Nature Snacks LLC',category:'Snacks',unitCost:1.05,onHand:400,inTransit:0,dailySales:40,demandSD:10,leadTime:14,moq:2000,casePack:100},
+    {id:'SNCK-005',name:'Granola Bar – Honey Oat',supplier:'Nature Snacks LLC',category:'Snacks',unitCost:1.20,onHand:0,inTransit:2000,dailySales:90,demandSD:20,leadTime:14,moq:2000,casePack:24},
+    // Supplier D — 4 SKUs
+    {id:'BEV-001',name:'RTD Protein Shake – Chocolate',supplier:'BevCo Manufacturing',category:'RTD',unitCost:2.40,onHand:1800,inTransit:0,dailySales:120,demandSD:25,leadTime:42,moq:1000,casePack:12},
+    {id:'BEV-002',name:'RTD Protein Shake – Vanilla',supplier:'BevCo Manufacturing',category:'RTD',unitCost:2.40,onHand:200,inTransit:0,dailySales:100,demandSD:22,leadTime:42,moq:1000,casePack:12},
+    {id:'BEV-003',name:'RTD Protein Shake – Strawberry',supplier:'BevCo Manufacturing',category:'RTD',unitCost:2.40,onHand:0,inTransit:0,dailySales:75,demandSD:18,leadTime:42,moq:1000,casePack:12},
+    {id:'BEV-004',name:'Cold Brew Protein – Mocha',supplier:'BevCo Manufacturing',category:'RTD',unitCost:2.80,onHand:900,inTransit:0,dailySales:60,demandSD:15,leadTime:42,moq:500,casePack:12},
+    // Supplements — 2 more
+    {id:'SUPP-001',name:'Creatine Monohydrate 500g',supplier:'Vitapack Co.',category:'Supplements',unitCost:8.50,onHand:220,inTransit:0,dailySales:15,demandSD:4,leadTime:35,moq:100,casePack:6},
+    {id:'SUPP-002',name:'Omega-3 Softgels 90ct',supplier:'NutriCaps Ltd.',category:'Supplements',unitCost:5.20,onHand:80,inTransit:50,dailySales:20,demandSD:5,leadTime:45,moq:200,casePack:12},
+  ];
+  demo.forEach(d => { d._uid = ++skuCounter; d.overrideQty = null; skuData.push(calcSKU(d)); });
+  renderAll();
+}
+
+// ── Export PO (Excel) ─────────────────────────────
+function exportPO_Excel(){
+  if(typeof XLSX === 'undefined'){ alert('Excel library loading.'); return; }
+  const toOrder = skuData.filter(s => {
+    const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+    return qty > 0;
+  });
+  if(!toOrder.length){ alert('No SKUs need ordering.'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const orderDate = vs('orderDate');
+  const horizon = document.getElementById('horizonSelect').value;
+
+  // Summary sheet
+  const bySupplier = {};
+  toOrder.forEach(s => {
+    const sup = s.supplier || 'Unknown';
+    if(!bySupplier[sup]) bySupplier[sup] = [];
+    bySupplier[sup].push(s);
+  });
+
+  const summaryRows = [
+    ['MisEnPlace — Purchase Order Summary'],
+    ['Order date:', orderDate, '', 'Planning horizon:', horizon+' days'],
+    [],
+    ['Supplier','SKUs','Order Total','Earliest Arrival','Latest Arrival'],
+  ];
+  let grandTotal = 0;
+  Object.entries(bySupplier).sort().forEach(([sup, skus]) => {
+    const total = skus.reduce((acc,s) => {
+      const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+      return acc + qty * s.unitCost;
+    }, 0);
+    grandTotal += total;
+    summaryRows.push([sup, skus.length, total, skus[0]?.arrivalDate||'', skus[skus.length-1]?.arrivalDate||'']);
+  });
+  summaryRows.push([]);
+  summaryRows.push(['Grand Total', toOrder.length, grandTotal]);
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary['!cols'] = [{wch:28},{wch:8},{wch:14},{wch:18},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  // One sheet per supplier
+  Object.entries(bySupplier).sort().forEach(([sup, skus]) => {
+    const rows = [
+      ['Purchase Order — '+sup],
+      ['Order date:', orderDate, '', 'Planning horizon:', horizon+' days'],
+      [],
+      ['SKU ID','SKU Name','Status','On Hand','Daily Sales','Days of Stock','Rec. Order Qty','Order Qty','Unit Cost','Line Total','Lead Time (days)','Expected Arrival'],
+    ];
+    let supTotal = 0;
+    skus.forEach(s => {
+      const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+      const lineCost = qty * s.unitCost;
+      supTotal += lineCost;
+      rows.push([
+        s.id, s.name, s.status, s.onHand, s.dailySales,
+        s.daysOfStock===999?'∞':parseFloat(s.daysOfStock.toFixed(1)),
+        s.recOrderQty, qty, s.unitCost, lineCost, s.leadTime, s.arrivalDate
+      ]);
+    });
+    rows.push([]);
+    rows.push(['','','','','','','','','Total →', supTotal]);
+    const sheetName = sup.slice(0,28).replace(/[/\\?*[\]]/g,'_');
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:12},{wch:32},{wch:10},{wch:10},{wch:12},{wch:14},{wch:14},{wch:10},{wch:10},{wch:12},{wch:16},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+
+  XLSX.writeFile(wb, 'PurchaseOrder_'+orderDate+'.xlsx');
+}
+
+// ── Export PO (CSV) ───────────────────────────────
+function exportPO_CSV(){
+  const toOrder = skuData.filter(s => {
+    const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+    return qty > 0;
+  });
+  if(!toOrder.length){ alert('No SKUs need ordering.'); return; }
+  const q = s => '"'+String(s||'').replace(/"/g,'""')+'"';
+  const headers = ['SKU_ID','SKU_NAME','SUPPLIER','STATUS','ON_HAND','DAILY_SALES','DAYS_OF_STOCK','REC_ORDER_QTY','ORDER_QTY','UNIT_COST','LINE_TOTAL','LEAD_TIME_DAYS','EXPECTED_ARRIVAL'];
+  const rows = toOrder.map(s => {
+    const qty = s.overrideQty !== null && s.overrideQty !== undefined && s.overrideQty !== '' ? Number(s.overrideQty) : s.recOrderQty;
+    return [s.id,s.name,s.supplier,s.status,s.onHand,s.dailySales,
+      s.daysOfStock===999?'∞':s.daysOfStock.toFixed(1),
+      s.recOrderQty,qty,s.unitCost,(qty*s.unitCost).toFixed(2),s.leadTime,s.arrivalDate
+    ].map(q).join(',');
+  });
+  const blob = new Blob([[headers.map(q).join(','),...rows].join('\r\n')],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='PurchaseOrder_'+vs('orderDate')+'.csv'; a.click();
+}
+</script>
+</body>
+</html>
