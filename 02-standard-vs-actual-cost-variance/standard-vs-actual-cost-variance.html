@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Standard vs Actual Cost Variance — MisEnPlace</title>
+<meta name="description" content="Compare your expected production cost to what actually happened, then see which overruns hurt margin the most. Built by Sam Pellerito."/>
+<style>
+:root{--bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.1);--text:#1A1612;--muted:#7A7068;--hint:#A09890;--accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--purple:#7F77DD;--amber:#BA7517;--navy:#9B5E28;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+.page{max-width:960px;margin:0 auto;padding:32px 20px 60px;}
+header{margin-bottom:32px;padding-bottom:24px;border-bottom:0.5px solid var(--border);}
+.header-tag{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+h1{font-size:24px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.header-desc{font-size:14px;color:var(--muted);max-width:600px;line-height:1.6;}
+.byline{font-size:13px;color:var(--muted);margin-top:10px;}
+.byline strong{color:var(--text);}
+.section-title{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin:28px 0 12px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--muted);font-weight:500;}
+.field input,.field select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:var(--card);outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.field input.actual{background:#fffbf0;border-color:rgba(186,117,23,0.3);}
+.field input.actual:focus{border-color:var(--amber);}
+.divider{border:none;border-top:0.5px solid var(--border);margin:24px 0;}
+.var-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;}
+.var-block-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.var-block-title{font-size:14px;font-weight:600;color:var(--text);}
+.var-block-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.var-badge{font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.var-badge.fav{background:rgba(29,158,117,0.12);color:#0F6E56;}
+.var-badge.unfav{background:rgba(226,75,74,0.12);color:#9B1C1C;}
+.var-badge.zero{background:var(--surface);color:var(--hint);}
+.col-label{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:6px;}
+.col-label span{font-size:10.5px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;}
+.col-label span:last-child{text-align:right;}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.metric{background:var(--surface);border-radius:10px;padding:14px 16px;}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.metric-value{font-size:22px;font-weight:600;color:var(--text);}
+.metric-value.fav{color:var(--teal);}
+.metric-value.unfav{color:var(--red);}
+.metric-value.warn{color:var(--amber);}
+.metric-sub{font-size:11px;color:var(--hint);margin-top:2px;}
+.var-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;}
+.var-table th{font-size:10.5px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;border-bottom:0.5px solid var(--border);background:var(--surface);text-align:left;}
+.var-table th.r{text-align:right;}
+.var-table td{padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--muted);}
+.var-table td:first-child{font-weight:500;color:var(--text);}
+.var-table td.r{text-align:right;}
+.var-table tfoot td{font-weight:700;color:var(--text);background:var(--surface);border-top:1px solid var(--border);}
+.var-table tfoot td.r{text-align:right;}
+.chart-wrap{position:relative;width:100%;height:280px;margin-bottom:8px;}
+.chart-note{font-size:11px;color:var(--hint);margin:4px 0 24px;}
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 10px;font-size:12px;color:var(--muted);}
+.legend-row span{display:flex;align-items:center;gap:6px;}
+.leg{width:14px;height:3px;display:inline-block;border-radius:2px;}
+.pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:4px;}
+.pill-blue{background:rgba(24,95,165,0.10);color:#185FA5;}
+.pill-amber{background:rgba(186,117,23,0.12);color:#92570A;}
+footer{margin-top:48px;padding-top:20px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.footer-left{font-size:13px;color:var(--muted);}
+.footer-left strong{color:var(--text);}
+.footer-right a{color:var(--hint);text-decoration:none;font-size:12px;}
+.footer-right a:hover{color:var(--accent);}
+@media(max-width:640px){.field-row,.field-row-3{grid-template-columns:1fr;}h1{font-size:20px;}.col-label{grid-template-columns:1fr 1fr 1fr;}}
+
+/* ── How to use block ── */
+.how-to{background:rgba(24,95,165,0.04);border:1px solid rgba(24,95,165,0.12);border-radius:10px;padding:14px 18px;margin:16px 0 0;display:flex;gap:20px;flex-wrap:wrap;}
+.how-to-step{display:flex;align-items:flex-start;gap:8px;min-width:160px;flex:1;}
+.how-to-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.how-to-text{font-size:12px;color:var(--muted);line-height:1.5;}
+/* ── Load sample button ── */
+.sample-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;transition:all .15s;margin-top:14px;}
+.sample-btn:hover{background:rgba(29,158,117,0.15);}
+/* ── Diagnosis box ── */
+.diagnosis{border-radius:10px;padding:14px 18px;margin-bottom:20px;border-left:3px solid;}
+.diagnosis.unfav{background:rgba(226,75,74,0.06);border-color:var(--red);}
+.diagnosis.fav{background:rgba(29,158,117,0.06);border-color:var(--teal);}
+.diagnosis.neutral{background:var(--surface);border-color:var(--border);}
+.diagnosis-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--hint);margin-bottom:4px;}
+.diagnosis-text{font-size:14px;color:var(--text);line-height:1.5;}
+/* ── Related tools ── */
+.related-tools{margin-top:36px;padding-top:20px;border-top:0.5px solid var(--border);}
+.related-title{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.related-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.related-link{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--text);text-decoration:none;transition:border-color .15s;}
+.related-link:hover{border-color:rgba(24,95,165,0.3);color:var(--accent);}
+/* ── Save for Export button ── */
+.save-export-wrap{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:0.5px solid var(--border);}
+.save-export-btn{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.save-export-btn:hover{opacity:.85;}
+.save-export-confirm{font-size:12px;color:var(--teal);display:none;font-weight:500;}
+
+
+/* ── Export bar ─────────────────── */
+.export-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-top:28px;}
+.export-bar-left{flex:1;min-width:160px;}
+.export-bar-left strong{font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:3px;}
+.export-bar-hint{font-size:12px;color:var(--muted);}
+.save-confirm{font-size:12px;color:var(--teal,#1D9E75);display:none;font-weight:500;}
+.ebtn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.ebtn:hover{opacity:.85;}
+.ebtn-hub{background:#185FA5;color:#fff;}
+.ebtn-csv{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.ebtn-xlsx{background:#1D6F42;color:#fff;}
+.ebtn-pdf{background:#c0392b;color:#fff;}
+.ebtn-reset{background:var(--surface);color:var(--muted);border:1px solid var(--border);}
+@media print{@page{size:letter;margin:1.4cm 1.6cm;}body{background:#fff;font-size:12px;}.no-print{display:none!important;}.print-only{display:block!important;}}
+.print-only{display:none;}
+@media(max-width:640px){.export-bar{flex-direction:column;align-items:flex-start;}}
+
+</style>
+<style id="pdf-styles">
+.pdf-cover{padding:32px 0 20px;border-bottom:2px solid #0c1f3a;margin-bottom:20px;}
+.pdf-brand{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#185FA5;margin-bottom:6px;}
+.pdf-title{font-size:24px;font-weight:700;color:#0f1724;margin-bottom:4px;}
+.pdf-meta{font-size:11px;color:#6b7280;margin-top:4px;}
+.pdf-section{margin-top:18px;margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;border-bottom:0.5px solid #e5e7eb;padding-bottom:4px;}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+.pdf-tbl th{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:left;background:#f8fafb;}
+.pdf-tbl td{padding:7px 10px;border-bottom:0.5px solid #f1f3f6;color:#374151;}
+.pdf-tbl tr:last-child td{border-bottom:none;}
+.pdf-footer{margin-top:32px;padding-top:12px;border-top:0.5px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<nav style="margin-bottom:20px;">
+  <a href="../index.html" style="font-size:13px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+    <span style="font-size:16px;line-height:1;">←</span> All tools
+  </a>
+</nav>
+
+<header>
+  <p class="header-tag">MisEnPlace</p>
+  <h1>Standard vs Actual Cost Variance</h1>
+  <p class="header-desc">Compare your expected production cost to what actually happened, then see which overruns hurt margin the most.</p>
+  <p style="font-size:13px;color:var(--hint);margin-top:6px;">Use this after a production run, co-man invoice, or batch closeout to find whether margin was lost to materials, labor, overhead, yield, or fees.</p>
+  <div class="how-to">
+    <div class="how-to-step"><div class="how-to-num">1</div><div class="how-to-text">Enter your planned run assumptions (standard costs &amp; budgeted units)</div></div>
+    <div class="how-to-step"><div class="how-to-num">2</div><div class="how-to-text">Enter what actually happened (actual quantities, rates, and output)</div></div>
+    <div class="how-to-step"><div class="how-to-num">3</div><div class="how-to-text">Review the diagnosis box — it calls out your largest unfavorable variance</div></div>
+    <div class="how-to-step"><div class="how-to-num">4</div><div class="how-to-text">Export or save to the hub for your operations report</div></div>
+  </div>
+  <button class="sample-btn" onclick="loadSample()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Load sample production run (Chocolate Protein Bar)
+  </button>
+  <p class="byline" style="margin-top:10px;">Built by <strong>Sam Pellerito</strong></p>
+</header>
+
+<!-- ── Run info ──────────────────────────────────────── -->
+<p class="section-title">Production run details</p>
+<div class="field-row">
+  <div class="field"><label>SKU / product name</label><input type="text" id="skuName" value="Product A"/></div>
+  <div class="field"><label>Units produced (actual)</label><input type="number" id="unitsProduced" value="950" min="1"/></div>
+</div>
+<div class="field-row">
+  <div class="field"><label>Standard run size (budgeted units)</label><input type="number" id="unitsStandard" value="1000" min="1"/></div>
+  <div class="field"><label>Selling price per unit ($)</label><input type="number" id="sellPrice" value="12.00" step="0.01" min="0"/></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════════════
+     MATERIAL VARIANCE
+     ══════════════════════════════════════════════════ -->
+<p class="section-title">1 — Material variance <span class="pill pill-blue">Yield loss & waste</span></p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Splits into <strong>price variance</strong> (paid more/less per unit of input) and <strong>usage/yield variance</strong> (used more/less material than standard).</p>
+
+<div class="var-block">
+  <div class="var-block-header">
+    <div><div class="var-block-title">Direct materials</div><div class="var-block-sub">Enter standard vs actual for each material line</div></div>
+    <span class="var-badge zero" id="mat-badge">$0</span>
+  </div>
+  <div class="col-label">
+    <span>Standard</span><span style="color:var(--amber)">Actual</span><span style="text-align:right">Variance</span>
+  </div>
+  <div class="field-row-3">
+    <div class="field"><label>Expected material qty per finished unit</label><input type="number" id="matStdQty" value="1.05" step="0.001" min="0"/></div>
+    <div class="field"><label>Actual material qty per finished unit <span style="color:var(--amber)">●</span></label><input type="number" id="matActQty" value="1.12" step="0.001" min="0" class="actual"/></div>
+    <div class="field"><label>Usage variance / unit ($)</label><input type="number" id="matUsageVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+  <div class="field-row-3">
+    <div class="field"><label>Standard cost per input unit ($)</label><input type="number" id="matStdRate" value="2.80" step="0.01" min="0"/></div>
+    <div class="field"><label>Actual cost per input unit ($) <span style="color:var(--amber)">●</span></label><input type="number" id="matActRate" value="2.95" step="0.01" min="0" class="actual"/></div>
+    <div class="field"><label>Price variance / unit ($)</label><input type="number" id="matPriceVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+  <div class="field-row">
+    <div class="field"><label>Standard yield (%)</label><input type="number" id="matStdYield" value="96" step="0.1" min="0" max="100"/></div>
+    <div class="field"><label>Actual yield (%) <span style="color:var(--amber)">●</span></label><input type="number" id="matActYield" value="93" step="0.1" min="0" max="100" class="actual"/></div>
+  </div>
+  <p style="font-size:11px;color:var(--hint);margin-top:-4px;">💡 Use qty per unit for price/usage variance. Use yield % when scrap or rework affects how much usable output you get from input — both are included in the total material variance.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     LABOR VARIANCE
+     ══════════════════════════════════════════════════ -->
+<p class="section-title">2 — Labor variance <span class="pill pill-blue">Efficiency & rate</span></p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Splits into <strong>rate variance</strong> (paid more/less per hour) and <strong>efficiency variance</strong> (took more/fewer hours than standard).</p>
+
+<div class="var-block">
+  <div class="var-block-header">
+    <div><div class="var-block-title">Direct labor</div><div class="var-block-sub">Hours and rates for the production run</div></div>
+    <span class="var-badge zero" id="labor-badge">$0</span>
+  </div>
+  <div class="col-label">
+    <span>Standard</span><span style="color:var(--amber)">Actual</span><span style="text-align:right">Variance</span>
+  </div>
+  <div class="field-row-3">
+    <div class="field"><label>Std hrs per unit</label><input type="number" id="laborStdHrs" value="0.040" step="0.001" min="0"/></div>
+    <div class="field"><label>Act hrs per unit <span style="color:var(--amber)">●</span></label><input type="number" id="laborActHrs" value="0.048" step="0.001" min="0" class="actual"/></div>
+    <div class="field"><label>Efficiency variance / unit ($)</label><input type="number" id="laborEffVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+  <div class="field-row-3">
+    <div class="field"><label>Std rate / hr ($)</label><input type="number" id="laborStdRate" value="22.00" step="0.50" min="0"/></div>
+    <div class="field"><label>Act rate / hr ($) <span style="color:var(--amber)">●</span></label><input type="number" id="laborActRate" value="23.50" step="0.50" min="0" class="actual"/></div>
+    <div class="field"><label>Rate variance / unit ($)</label><input type="number" id="laborRateVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     OVERHEAD VARIANCE
+     ══════════════════════════════════════════════════ -->
+<p class="section-title">3 — Overhead variance <span class="pill pill-blue">Volume & spending</span></p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Splits into <strong>spending variance</strong> (actual overhead vs budget) and <strong>volume variance</strong> (under/over-absorbed because output differed from plan).</p>
+
+<div class="var-block">
+  <div class="var-block-header">
+    <div><div class="var-block-title">Manufacturing overhead</div><div class="var-block-sub">Fixed + variable overhead for the run</div></div>
+    <span class="var-badge zero" id="oh-badge">$0</span>
+  </div>
+  <div class="col-label">
+    <span>Standard</span><span style="color:var(--amber)">Actual</span><span style="text-align:right">Variance</span>
+  </div>
+  <div class="field-row-3">
+    <div class="field"><label>Std overhead per unit ($)</label><input type="number" id="ohStdPU" value="0.65" step="0.01" min="0"/></div>
+    <div class="field"><label>Act total overhead ($) <span style="color:var(--amber)">●</span></label><input type="number" id="ohActTotal" value="640" step="0.01" min="0" class="actual"/></div>
+    <div class="field"><label>Spending variance ($)</label><input type="number" id="ohSpendVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+  <div class="field-row-3">
+    <div class="field">
+      <label>Budgeted units for overhead absorption</label>
+      <input type="number" id="ohStdUnits" readonly style="background:var(--surface);color:var(--muted);" title="Auto-filled from Standard run size above"/>
+      <span style="font-size:10px;color:var(--hint);margin-top:3px;">Auto-filled from standard run size</span>
+    </div>
+    <div class="field">
+      <label>Actual units produced</label>
+      <input type="number" id="ohActUnits" readonly style="background:var(--surface);color:var(--muted);" title="Auto-filled from Units produced above"/>
+      <span style="font-size:10px;color:var(--hint);margin-top:3px;">Auto-filled from actual units above</span>
+    </div>
+    <div class="field"><label>Volume variance ($)</label><input type="number" id="ohVolVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     CO-MAN VARIANCE
+     ══════════════════════════════════════════════════ -->
+<p class="section-title">4 — Co-man fee variance <span class="pill pill-amber">Contract vs actual</span></p>
+<p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Catches run fee overages, minimum charges, and change-order costs not in the original quote.</p>
+
+<div class="var-block">
+  <div class="var-block-header">
+    <div><div class="var-block-title">Co-manufacturer fees</div><div class="var-block-sub">Quoted / contracted rate vs what was actually invoiced</div></div>
+    <span class="var-badge zero" id="coman-badge">$0</span>
+  </div>
+  <div class="col-label">
+    <span>Standard</span><span style="color:var(--amber)">Actual</span><span style="text-align:right">Variance</span>
+  </div>
+  <div class="field-row-3">
+    <div class="field"><label>Std co-man fee / unit ($)</label><input type="number" id="comanStd" value="0.50" step="0.01" min="0"/></div>
+    <div class="field"><label>Act co-man fee / unit ($) <span style="color:var(--amber)">●</span></label><input type="number" id="comanAct" value="0.58" step="0.01" min="0" class="actual"/></div>
+    <div class="field"><label>Fee variance / unit ($)</label><input type="number" id="comanVar" readonly style="background:var(--surface);color:var(--muted)"/></div>
+  </div>
+  <div class="field-row">
+    <div class="field"><label>Std run/setup fee (batch) ($)</label><input type="number" id="comanStdSetup" value="200" step="10" min="0"/></div>
+    <div class="field"><label>Act run/setup fee (batch) ($) <span style="color:var(--amber)">●</span></label><input type="number" id="comanActSetup" value="275" step="10" min="0" class="actual"/></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     RESULTS
+     ══════════════════════════════════════════════════ -->
+<div class="divider"></div>
+<p class="section-title">Total variance summary</p>
+
+<div class="metric-grid">
+  <div class="metric"><p class="metric-label">Standard cost / unit</p><p class="metric-value" id="out-stdCost">—</p><p class="metric-sub">budgeted</p></div>
+  <div class="metric"><p class="metric-label">Actual cost / unit</p><p class="metric-value" id="out-actCost">—</p><p class="metric-sub">as produced</p></div>
+  <div class="metric"><p class="metric-label">Total variance / unit</p><p class="metric-value" id="out-totalVar">—</p><p class="metric-sub">unfav = over budget</p></div>
+  <div class="metric"><p class="metric-label">Total variance (run)</p><p class="metric-value" id="out-totalVarRun">—</p><p class="metric-sub">across actual units</p></div>
+  <div class="metric"><p class="metric-label">Std gross margin</p><p class="metric-value" id="out-stdGM">—</p><p class="metric-sub">budgeted %</p></div>
+  <div class="metric"><p class="metric-label">Actual gross margin</p><p class="metric-value" id="out-actGM">—</p><p class="metric-sub">as produced %</p></div>
+</div>
+
+<div id="diagnosisBox" class="diagnosis neutral" style="display:none">
+  <div class="diagnosis-label">Run diagnosis</div>
+  <div class="diagnosis-text" id="diagnosisText"></div>
+</div>
+
+<p class="section-title">Variance breakdown by category</p>
+<table class="var-table" aria-label="Variance breakdown">
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th>Sub-variance</th>
+      <th class="r">Std / unit</th>
+      <th class="r">Act / unit</th>
+      <th class="r">Var / unit</th>
+      <th class="r">Total (run)</th>
+      <th class="r">Direction</th>
+    </tr>
+  </thead>
+  <tbody id="varBody"></tbody>
+  <tfoot id="varFoot"></tfoot>
+</table>
+<p class="chart-note">Unfavorable (U) = actual cost exceeded standard — a drain on margin. Favorable (F) = came in under budget. Focus first on the largest unfavorable variances.</p>
+
+<p class="section-title">Variance waterfall — standard to actual cost per unit</p>
+<div class="legend-row">
+  <span><span class="leg" style="background:var(--accent)"></span>Standard cost</span>
+  <span><span class="leg" style="background:var(--red)"></span>Unfavorable variance</span>
+  <span><span class="leg" style="background:var(--teal)"></span>Favorable variance</span>
+  <span><span class="leg" style="background:var(--muted)"></span>Actual cost</span>
+</div>
+<div class="chart-wrap"><canvas id="waterfallChart" role="img" aria-label="Variance waterfall chart">Waterfall chart.</canvas></div>
+<p class="chart-note">Each bar shows the incremental cost added (unfavorable, red) or saved (favorable, green) vs standard. The final bar is your actual cost per unit.</p>
+
+<div class="related-tools no-print">
+  <p class="related-title">Related tools</p>
+  <div class="related-grid">
+    <a class="related-link" href="../01-cogs-per-unit-builder/cogs-per-unit-builder V2.html">📦 COGS per unit builder</a>
+    <a class="related-link" href="../04-moq-run-size-optimizer/moq-run-size-optimizer.html">📐 MOQ &amp; run size optimizer</a>
+    <a class="related-link" href="../03-make-vs-buy-decision/make-vs-buy-decision.html">⚖️ Make vs buy decision</a>
+    <a class="related-link" href="../08-landed-cost-freight/landed-cost-freight.html">🚢 Landed cost &amp; freight</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-left">Built by <strong>Sam Pellerito</strong> — MisEnPlace</div>
+  <div class="footer-right"><a href="../index.html">← All tools</a></div>
+
+<div class="export-bar no-print">
+  <div class="export-bar-left">
+    <strong>Export this variance report</strong>
+    <span class="save-confirm" id="saveConfirm">&#10003; Saved to Export Hub</span><span class="export-bar-hint" id="exportHint">Save to hub for multi-tool report, or download directly</span>
+  </div>
+  <button class="ebtn ebtn-hub" onclick="saveForExport()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Save to Export Hub
+  </button>
+  <button class="ebtn ebtn-csv" onclick="exportCSV()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Download CSV
+  </button>
+  <button class="ebtn ebtn-xlsx" onclick="exportExcel()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Download Excel
+  </button>
+  <button class="ebtn ebtn-pdf" onclick="exportPDF()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Download PDF
+  </button>
+  <button class="ebtn ebtn-reset" onclick="resetForm(this)" title="Reset all inputs to defaults">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
+    Reset
+  </button>
+</div>
+<div id="pdfReport" class="print-only"></div>
+
+</footer>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+if(typeof Chart === 'undefined'){
+  var _s = document.createElement('script');
+  _s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+  document.head.appendChild(_s);
+}
+</script>
+<script>
+function val(id){ return parseFloat(document.getElementById(id).value) || 0; }
+function setVal(id, v){ document.getElementById(id).value = isNaN(v) ? '' : v.toFixed(4); }
+function fmt(n, d=2){ return '$' + Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function fmtPct(n){ return n.toFixed(1) + '%'; }
+function fmtVar(v){ return (v > 0 ? '+' : '') + '$' + v.toFixed(4); }
+function $id(id){ return document.getElementById(id); }
+
+function dirLabel(v){ return v > 0.005 ? 'Unfav (U)' : v < -0.005 ? 'Fav (F)' : 'None'; }
+function dirColor(v){ return v > 0.005 ? 'var(--red)' : v < -0.005 ? 'var(--teal)' : 'var(--hint)'; }
+function setBadge(id, v){
+  const el = $id(id);
+  el.textContent = (v >= 0 ? '+' : '') + '$' + v.toFixed(2);
+  el.className = 'var-badge ' + (v > 0.01 ? 'unfav' : v < -0.01 ? 'fav' : 'zero');
+}
+
+let waterfallChart = null;
+
+function render(){
+  const units = val('unitsProduced') || 1;
+  const stdUnits = val('unitsStandard') || 1;
+  const sell = val('sellPrice');
+
+  // Auto-sync overhead unit fields from top-level inputs
+  const ohStdEl = document.getElementById('ohStdUnits');
+  const ohActEl = document.getElementById('ohActUnits');
+  if(ohStdEl) ohStdEl.value = stdUnits;
+  if(ohActEl) ohActEl.value = units;
+
+  /* ── Material ── */
+  const mStdQty = val('matStdQty'), mActQty = val('matActQty');
+  const mStdRate = val('matStdRate'), mActRate = val('matActRate');
+  const mStdYield = val('matStdYield') / 100, mActYield = val('matActYield') / 100;
+
+  // Usage variance: (actual qty - std qty) × std rate
+  const matUsageVar = (mActQty - mStdQty) * mStdRate;
+  // Price variance: (actual rate - std rate) × actual qty
+  const matPriceVar = (mActRate - mStdRate) * mActQty;
+  // Yield variance adjustment (extra material needed due to yield loss)
+  const yieldAdj = mStdYield > 0 && mActYield > 0 ? (1/mActYield - 1/mStdYield) * mStdQty * mStdRate : 0;
+  const matTotalVar = matUsageVar + matPriceVar + yieldAdj;
+
+  setVal('matUsageVar', matUsageVar);
+  setVal('matPriceVar', matPriceVar);
+  setBadge('mat-badge', matTotalVar);
+
+  const matStdCost = mStdQty * mStdRate;
+  const matActCost = mActQty * mActRate;
+
+  /* ── Labor ── */
+  const lStdHrs = val('laborStdHrs'), lActHrs = val('laborActHrs');
+  const lStdRate = val('laborStdRate'), lActRate = val('laborActRate');
+
+  const laborEffVar = (lActHrs - lStdHrs) * lStdRate;
+  const laborRateVar = (lActRate - lStdRate) * lActHrs;
+  const laborTotalVar = laborEffVar + laborRateVar;
+
+  setVal('laborEffVar', laborEffVar);
+  setVal('laborRateVar', laborRateVar);
+  setBadge('labor-badge', laborTotalVar);
+
+  const laborStdCost = lStdHrs * lStdRate;
+  const laborActCost = lActHrs * lActRate;
+
+  /* ── Overhead ── */
+  const ohStdPU = val('ohStdPU');
+  const ohActTotal = val('ohActTotal');
+  const ohStdUnits = val('ohStdUnits') || 1;
+  const ohActUnits = val('ohActUnits') || 1;
+
+  const ohBudgetTotal = ohStdPU * ohStdUnits;
+  const ohSpendVar = (ohActTotal - ohBudgetTotal) / ohActUnits;           // spending: actual vs budgeted overhead
+  const ohVolVar = ohStdPU * (ohStdUnits - ohActUnits) / ohActUnits;     // volume: under-absorbed due to fewer units
+  const ohTotalVar = ohSpendVar + ohVolVar;
+
+  setVal('ohSpendVar', ohSpendVar);
+  setVal('ohVolVar', ohVolVar);
+  setBadge('oh-badge', ohTotalVar);
+
+  const ohStdCost = ohStdPU;
+  const ohActCost = ohActTotal / ohActUnits;
+
+  /* ── Co-man ── */
+  const cStd = val('comanStd'), cAct = val('comanAct');
+  const cStdSetup = val('comanStdSetup'), cActSetup = val('comanActSetup');
+
+  const comanFeeVar = cAct - cStd;
+  const comanSetupVar = (cActSetup - cStdSetup) / units;
+  const comanTotalVar = comanFeeVar + comanSetupVar;
+
+  setVal('comanVar', comanFeeVar);
+  setBadge('coman-badge', comanTotalVar);
+
+  const comanStdCost = cStd + cStdSetup / stdUnits;
+  const comanActCost = cAct + cActSetup / units;
+
+  /* ── Totals ── */
+  const stdCost = matStdCost + laborStdCost + ohStdCost + comanStdCost;
+  const actCost = matActCost + laborActCost + ohActCost + comanActCost;
+  const totalVar = matTotalVar + laborTotalVar + ohTotalVar + comanTotalVar;
+  const totalVarRun = totalVar * units;
+  const stdGM = sell ? ((sell - stdCost) / sell * 100) : 0;
+  const actGM = sell ? ((sell - actCost) / sell * 100) : 0;
+
+  /* ── Diagnosis ── */
+  const varCategories = [
+    { label: 'material price',      perUnit: matPriceVar,         total: matPriceVar * units },
+    { label: 'material usage/yield', perUnit: matUsageVar + yieldAdj, total: (matUsageVar + yieldAdj) * units },
+    { label: 'labor rate',          perUnit: laborRateVar,         total: laborRateVar * units },
+    { label: 'labor efficiency',    perUnit: laborEffVar,          total: laborEffVar * units },
+    { label: 'overhead spending',   perUnit: ohSpendVar,           total: ohSpendVar * units },
+    { label: 'overhead volume',     perUnit: ohVolVar,             total: ohVolVar * units },
+    { label: 'co-man fees',         perUnit: comanFeeVar,          total: comanFeeVar * units },
+    { label: 'co-man setup',        perUnit: comanSetupVar,        total: comanSetupVar * units },
+  ];
+  const unfav = varCategories.filter(c => c.perUnit > 0.005).sort((a,b) => b.total - a.total);
+  const dBox = $id('diagnosisBox');
+  const dText = $id('diagnosisText');
+  if(dBox && dText){
+    if(totalVar > 0.005 && unfav.length > 0){
+      const worst = unfav[0];
+      dText.textContent = `Your largest unfavorable variance is ${worst.label}, adding ${fmt(worst.perUnit)} per unit and ${fmt(Math.abs(worst.total), 0)} across this ${units.toLocaleString()}-unit run. Total run overrun: ${fmt(Math.abs(totalVarRun), 0)} unfavorable — actual gross margin is ${fmtPct(actGM)} vs ${fmtPct(stdGM)} budgeted.`;
+      dBox.className = 'diagnosis unfav';
+      dBox.style.display = '';
+    } else if(totalVar < -0.005){
+      dText.textContent = `This run came in under budget — a ${fmt(Math.abs(totalVar))} per unit favorable variance (${fmt(Math.abs(totalVarRun), 0)} across the run). Actual gross margin of ${fmtPct(actGM)} beat the ${fmtPct(stdGM)} target.`;
+      dBox.className = 'diagnosis fav';
+      dBox.style.display = '';
+    } else {
+      dBox.style.display = 'none';
+    }
+  }
+
+  /* ── Key metrics ── */
+  $id('out-stdCost').textContent = fmt(stdCost);
+  $id('out-actCost').textContent = fmt(actCost);
+  const varEl = $id('out-totalVar');
+  varEl.textContent = (totalVar >= 0 ? '+' : '') + fmt(totalVar) + (totalVar > 0.005 ? ' U' : totalVar < -0.005 ? ' F' : '');
+  varEl.className = 'metric-value' + (totalVar > 0.005 ? ' unfav' : totalVar < -0.005 ? ' fav' : '');
+  const varRunEl = $id('out-totalVarRun');
+  varRunEl.textContent = (totalVarRun >= 0 ? '+' : '') + fmt(totalVarRun, 0);
+  varRunEl.className = 'metric-value' + (totalVarRun > 0.5 ? ' unfav' : totalVarRun < -0.5 ? ' fav' : '');
+  $id('out-stdGM').textContent = fmtPct(stdGM);
+  $id('out-stdGM').className = 'metric-value' + (stdGM < 0 ? ' unfav' : stdGM < 20 ? ' warn' : ' fav');
+  $id('out-actGM').textContent = fmtPct(actGM);
+  $id('out-actGM').className = 'metric-value' + (actGM < 0 ? ' unfav' : actGM < 20 ? ' warn' : actGM >= stdGM ? ' fav' : '');
+
+  /* ── Breakdown table ── */
+  const rows = [
+    ['Material', 'Price variance',   matStdCost,    matActCost,    matPriceVar,   matPriceVar * units],
+    ['Material', 'Usage / yield',    matStdCost,    matActCost,    matUsageVar + yieldAdj, (matUsageVar + yieldAdj) * units],
+    ['Labor',    'Rate variance',    laborStdCost,  laborActCost,  laborRateVar,  laborRateVar * units],
+    ['Labor',    'Efficiency',       laborStdCost,  laborActCost,  laborEffVar,   laborEffVar * units],
+    ['Overhead', 'Spending',         ohStdCost,     ohActCost,     ohSpendVar,    ohSpendVar * units],
+    ['Overhead', 'Volume',           ohStdCost,     ohActCost,     ohVolVar,      ohVolVar * units],
+    ['Co-man',   'Fee / unit',       comanStdCost,  comanActCost,  comanFeeVar,   comanFeeVar * units],
+    ['Co-man',   'Setup / run fee',  comanStdCost,  comanActCost,  comanSetupVar, comanSetupVar * units],
+  ];
+
+  $id('varBody').innerHTML = rows.map(([cat, sub, std, act, varPU, varTotal]) => `
+    <tr>
+      <td>${cat}</td>
+      <td style="color:var(--muted)">${sub}</td>
+      <td class="r">${fmt(std)}</td>
+      <td class="r">${fmt(act)}</td>
+      <td class="r" style="color:${dirColor(varPU)};font-weight:600">${(varPU >= 0 ? '+' : '') + fmt(varPU)}</td>
+      <td class="r" style="color:${dirColor(varTotal)}">${(varTotal >= 0 ? '+' : '') + fmt(varTotal, 0)}</td>
+      <td class="r" style="color:${dirColor(varPU)};font-size:11px">${dirLabel(varPU)}</td>
+    </tr>`).join('');
+
+  $id('varFoot').innerHTML = `<tr>
+    <td colspan="2">Total</td>
+    <td class="r">${fmt(stdCost)}</td>
+    <td class="r">${fmt(actCost)}</td>
+    <td class="r" style="color:${dirColor(totalVar)};font-weight:700">${(totalVar >= 0 ? '+' : '') + fmt(totalVar)}</td>
+    <td class="r" style="color:${dirColor(totalVarRun)};font-weight:700">${(totalVarRun >= 0 ? '+' : '') + fmt(totalVarRun, 0)}</td>
+    <td class="r" style="color:${dirColor(totalVar)};font-size:11px">${dirLabel(totalVar)}</td>
+  </tr>`;
+
+  /* ── Waterfall chart ── */
+  if(typeof Chart === 'undefined') return;
+
+  // Waterfall: std cost base, then each category variance, then actual cost
+  const categories = ['Standard cost', 'Material\nprice', 'Material\nusage/yield', 'Labor\nrate', 'Labor\nefficiency', 'Overhead\nspending', 'Overhead\nvolume', 'Co-man\nfees', 'Co-man\nsetup', 'Actual cost'];
+  const variances  = [matPriceVar, matUsageVar + yieldAdj, laborRateVar, laborEffVar, ohSpendVar, ohVolVar, comanFeeVar, comanSetupVar];
+
+  // Build floating bar data [base, top]
+  const floatData = [];
+  let running = stdCost;
+  floatData.push([0, stdCost]); // standard cost bar (from 0)
+  for(const v of variances){
+    const base = running;
+    running += v;
+    floatData.push(v >= 0 ? [base, running] : [running, base]);
+  }
+  floatData.push([0, actCost]); // actual cost bar (from 0)
+
+  const bgColors = [
+    'rgba(24,95,165,0.75)',  // standard
+    ...variances.map(v => v > 0.005 ? 'rgba(226,75,74,0.75)' : v < -0.005 ? 'rgba(29,158,117,0.75)' : 'rgba(156,163,175,0.5)'),
+    'rgba(107,114,128,0.75)' // actual
+  ];
+
+  if(waterfallChart) waterfallChart.destroy();
+  waterfallChart = new Chart($id('waterfallChart'), {
+    type: 'bar',
+    data: {
+      labels: categories,
+      datasets:[{
+        data: floatData,
+        backgroundColor: bgColors,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options:{
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins:{
+        legend:{ display: false },
+        tooltip:{
+          callbacks:{
+            label: ctx => {
+              const [lo, hi] = ctx.raw;
+              const v = hi - lo;
+              return (v >= 0 ? '+' : '') + '$' + v.toFixed(4);
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ ticks:{ color:'#9ca3af', font:{ size:11 }, maxRotation:0 }, grid:{ display:false }},
+        y:{ ticks:{ color:'#9ca3af', font:{ size:11 }, callback: v => '$'+v.toFixed(2) }, grid:{ color:'rgba(0,0,0,0.05)' }}
+      }
+    }
+  });
+}
+
+document.querySelectorAll('input').forEach(el => { if(!el.readOnly) el.addEventListener('input', render); });
+if(document.readyState === 'complete'){ render(); } else { window.addEventListener('load', render); }
+
+const getVal = id => { const el=document.getElementById(id); return el ? (el.value||'\u2014') : '\u2014'; };
+const getTxt = id => { const el=document.getElementById(id); return el ? el.textContent.trim()||'\u2014' : '\u2014'; };
+
+function saveForExport(){
+  const metrics = [
+    {name:'Standard cost / unit', formatted: getTxt('out-stdCost'), sentiment:''},
+    {name:'Actual cost / unit', formatted: getTxt('out-actCost'), sentiment:''},
+    {name:'Total variance / unit', formatted: getTxt('out-totalVar'), sentiment:'warn'},
+    {name:'Total variance (full run)', formatted: getTxt('out-totalVarRun'), sentiment:'warn'},
+    {name:'Standard gross margin', formatted: getTxt('out-stdGM'), sentiment:'good'},
+    {name:'Actual gross margin', formatted: getTxt('out-actGM'), sentiment:'good'}
+  ];
+  const data = { toolId:'cost-variance', toolLabel:'Standard vs Actual Cost Variance', savedAt: new Date().toISOString(), metrics };
+  localStorage.setItem('cpg_export_cost-variance', JSON.stringify(data));
+  const c = document.getElementById('saveConfirm');
+  const h=document.getElementById('exportHint'); if(c){ c.style.display='inline'; if(h) h.style.display='none'; setTimeout(()=>{ c.style.display='none'; if(h) h.style.display='inline'; }, 3000); }
+}
+
+function exportCSV(){
+  const q = s => '"'+String(s||'').replace(/"/g,'""')+'"';
+  const now = new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const rows = [];
+  rows.push([q('Standard vs Actual Cost Variance — MisEnPlace'), q('Exported: '+now)]);
+  rows.push([]);
+  rows.push([q('── INPUTS ──')]);
+  rows.push([q('SKU / Product name'), q(getVal('skuName'))]);
+  rows.push([q('Units produced (actual)'), q(getVal('unitsProduced'))]);
+  rows.push([q('Standard run size (units)'), q(getVal('unitsStandard'))]);
+  rows.push([q('Selling price / unit ($)'), q(getVal('sellPrice'))]);
+  rows.push([]);
+  rows.push([q('── RESULTS ──')]);
+  rows.push([q('Metric'), q('Value')]);
+  rows.push([q('Standard cost / unit'), q(getTxt('out-stdCost'))]);
+  rows.push([q('Actual cost / unit'), q(getTxt('out-actCost'))]);
+  rows.push([q('Total variance / unit'), q(getTxt('out-totalVar'))]);
+  rows.push([q('Total variance (full run)'), q(getTxt('out-totalVarRun'))]);
+  rows.push([q('Standard gross margin'), q(getTxt('out-stdGM'))]);
+  rows.push([q('Actual gross margin'), q(getTxt('out-actGM'))]);
+  const csv = rows.map(r=>r.join(',')).join('\r\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='cost-variance-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){alert('Excel library loading — try again in a moment.');return;}
+  const now = new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const wb = XLSX.utils.book_new();
+  const rows = [
+    ['Standard vs Actual Cost Variance', '', 'Exported: '+now],
+    [],
+    ['── INPUTS ──'],
+    ['SKU / Product name', getVal('skuName')],
+    ['Units produced (actual)', getVal('unitsProduced')],
+    ['Standard run size (units)', getVal('unitsStandard')],
+    ['Selling price / unit ($)', getVal('sellPrice')],
+    [],
+    ['── RESULTS ──'],
+    ['Metric','Value'],
+    ['Standard cost / unit', getTxt('out-stdCost')],
+    ['Actual cost / unit', getTxt('out-actCost')],
+    ['Total variance / unit', getTxt('out-totalVar')],
+    ['Total variance (full run)', getTxt('out-totalVarRun')],
+    ['Standard gross margin', getTxt('out-stdGM')],
+    ['Actual gross margin', getTxt('out-actGM')],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:36},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Results');
+  XLSX.writeFile(wb, 'cost-variance-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+function exportPDF(){
+  const now = new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inp = [['SKU / Product name', getVal('skuName')], ['Units produced (actual)', getVal('unitsProduced')], ['Standard run size (units)', getVal('unitsStandard')], ['Selling price / unit ($)', getVal('sellPrice')]];
+  const met = [['Standard cost / unit', getTxt('out-stdCost')], ['Actual cost / unit', getTxt('out-actCost')], ['Total variance / unit', getTxt('out-totalVar')], ['Total variance (full run)', getTxt('out-totalVarRun')], ['Standard gross margin', getTxt('out-stdGM')], ['Actual gross margin', getTxt('out-actGM')]];
+  const inputRows = inp.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('');
+  const metRows   = met.map(r=>`<tr><td>${esc(r[0])}</td><td style="font-weight:600">${esc(r[1])}</td></tr>`).join('');
+  document.getElementById('pdfReport').innerHTML = `
+    <div class="pdf-cover">
+      <p class="pdf-brand">MisEnPlace</p>
+      <h2 class="pdf-title">Standard vs Actual Cost Variance</h2>
+      <p class="pdf-meta">Production variance analysis &middot; ${now}</p>
+    </div>
+    <p class="pdf-section">Inputs</p>
+    <table class="pdf-tbl"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>${inputRows}</tbody></table>
+    <p class="pdf-section" style="margin-top:18px">Results</p>
+    <table class="pdf-tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>${metRows}</tbody></table>
+    <div class="pdf-footer"><span>Standard vs Actual Cost Variance — MisEnPlace — Sam Pellerito</span><span>Exported ${now}</span></div>`;
+  setTimeout(()=>window.print(),120);
+}
+
+function loadSample(){
+  // Chocolate Protein Bar — sample production run
+  const set = (id, v) => { const el = document.getElementById(id); if(el){ el.value = v; } };
+  set('skuName',         'Chocolate Protein Bar');
+  set('unitsStandard',   '10000');
+  set('unitsProduced',   '9200');
+  set('sellPrice',       '2.50');
+  // Materials
+  set('matStdQty',       '0.85');
+  set('matActQty',       '0.92');
+  set('matStdRate',      '1.20');
+  set('matActRate',      '1.26');
+  set('matStdYield',     '97');
+  set('matActYield',     '94');
+  // Labor
+  set('laborStdHrs',     '0.025');
+  set('laborActHrs',     '0.031');
+  set('laborStdRate',    '18.00');
+  set('laborActRate',    '19.50');
+  // Overhead
+  set('ohStdPU',         '0.42');
+  set('ohActTotal',      '4100');
+  // Co-man
+  set('comanStd',        '0.38');
+  set('comanAct',        '0.44');
+  set('comanStdSetup',   '350');
+  set('comanActSetup',   '425');
+  render();
+}
+
+function flashResetBtn(btn){
+  if(!btn) return;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 12 4 9"/></svg> ✓ Cleared';
+  btn.style.background = 'rgba(29,158,117,0.12)';
+  btn.style.color = 'var(--teal)';
+  btn.style.borderColor = 'rgba(29,158,117,0.3)';
+  setTimeout(()=>{
+    btn.innerHTML = orig;
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }, 2000);
+}
+function resetForm(btn){
+  localStorage.removeItem('cpg_export_cost-variance');
+  flashResetBtn(btn);
+  document.querySelectorAll('input,select').forEach(el=>{
+    const def=el.getAttribute('value');
+    if(el.tagName==='SELECT'){ el.selectedIndex=0; }
+    else if(def!==null){ el.value=def; }
+  });
+  if(typeof calc==='function') calc();
+  if(typeof render==='function') render();
+}
+</script>
+</body>
+</html>

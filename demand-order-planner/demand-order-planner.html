@@ -1,0 +1,1737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Demand & Order Planner — MisEnPlace</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#F9F7F4;--card:#FFFFFF;--surface:#F2EFE9;--border:rgba(26,22,18,0.10);
+  --text:#1A1612;--muted:#7A7068;--hint:#A09890;
+  --accent:#9B5E28;--teal:#2D8C5A;--red:#C94040;--amber:#BA7517;--purple:#7F77DD;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+button,input,select,textarea{font-family:inherit;}
+
+/* ── Global bar ── */
+.gbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:200;min-height:52px;}
+.gbar-brand{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.brand-mark{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.brand-mark svg{color:#fff;}
+.brand-name{font-size:14px;font-weight:700;}
+.gsep{width:1px;height:20px;background:var(--border);flex-shrink:0;}
+.gfield{display:flex;align-items:center;gap:6px;}
+.glabel{font-size:11px;color:var(--hint);font-weight:600;white-space:nowrap;}
+.gsel,.ginp{padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:var(--card);color:var(--text);outline:none;}
+.gsel:focus,.ginp:focus{border-color:var(--accent);}
+.ginp-sm{width:80px;}
+.gright{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.updated-pill{font-size:11px;color:var(--hint);background:var(--surface);border-radius:20px;padding:3px 10px;}
+.updated-pill span{color:var(--teal);font-weight:600;}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:5px;border:none;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--accent);}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-ghost{background:transparent;color:var(--muted);border:none;padding:6px 10px;}
+.btn-ghost:hover{color:var(--text);}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-xs{padding:3px 9px;font-size:11px;}
+
+/* ── Tabs ── */
+.tabs-bar{background:var(--card);border-bottom:1px solid var(--border);display:flex;gap:0;padding:0 24px;position:sticky;top:52px;z-index:190;}
+.tab-btn{padding:13px 18px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:6px;transition:color .15s;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-badge{font-size:10px;font-weight:700;background:var(--surface);color:var(--muted);border-radius:10px;padding:1px 6px;}
+.tab-badge.green{background:#e6f4ee;color:var(--teal);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* ── Layout ── */
+.content{padding:24px;max-width:1280px;margin:0 auto;}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:16px;font-weight:700;}
+.section-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-title{font-size:13px;font-weight:700;}
+.card-body{padding:18px;}
+
+/* ── Form grid ── */
+.fgrid{display:grid;gap:14px;}
+.fgrid-2{grid-template-columns:repeat(2,1fr);}
+.fgrid-3{grid-template-columns:repeat(3,1fr);}
+.fgrid-4{grid-template-columns:repeat(4,1fr);}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);color:var(--text);outline:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:60px;}
+
+/* ── SKU table ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--surface);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:9px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--border);}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface);}
+.td-inp{width:100%;border:1px solid transparent;background:transparent;font-size:13px;color:var(--text);padding:4px 6px;border-radius:6px;outline:none;}
+.td-inp:focus{border-color:var(--accent);background:var(--card);}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;}
+.badge-green{background:#e6f4ee;color:var(--teal);}
+.badge-amber{background:#fef3e2;color:var(--amber);}
+.badge-red{background:#fce8e8;color:var(--red);}
+.badge-purple{background:#eeecfb;color:var(--purple);}
+.badge-gray{background:var(--surface);color:var(--muted);}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:48px 24px;color:var(--hint);}
+.empty-icon{font-size:32px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+.empty-sub{font-size:13px;}
+
+/* ── Demand tab ── */
+.channel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px;}
+.channel-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s;}
+.channel-card.enabled{border-color:var(--accent);}
+.ch-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.ch-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;}
+.ch-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.ch-icon-dtc{background:#fce8e8;}
+.ch-icon-amz{background:#fef3e2;}
+.ch-icon-ws{background:#e6f4ee;}
+.ch-icon-mass{background:#eeecfb;}
+.ch-body{padding:14px 16px;}
+.ch-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+.ch-row-3{grid-template-columns:1fr 1fr 1fr;}
+.ch-field label{display:block;font-size:10px;font-weight:600;color:var(--hint);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px;}
+.ch-field input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);outline:none;}
+.ch-field input:focus{border-color:var(--accent);background:var(--card);}
+.ch-result{margin-top:10px;padding:8px 10px;background:var(--surface);border-radius:8px;display:flex;justify-content:space-between;align-items:center;}
+.ch-result-label{font-size:11px;color:var(--muted);}
+.ch-result-val{font-size:14px;font-weight:700;color:var(--accent);}
+.toggle-switch{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:20px;transition:.2s;}
+.toggle-slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+.toggle-switch input:checked+.toggle-slider{background:var(--accent);}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(16px);}
+
+/* ── Seasonality grid ── */
+.season-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;}
+.season-cell{text-align:center;}
+.season-cell label{display:block;font-size:10px;font-weight:700;color:var(--hint);margin-bottom:4px;}
+.season-cell input{width:100%;padding:6px 4px;border:1px solid var(--border);border-radius:7px;font-size:12px;text-align:center;background:var(--card);color:var(--text);outline:none;}
+.season-cell input:focus{border-color:var(--accent);}
+.season-bar{height:4px;background:var(--accent);border-radius:2px;margin-top:4px;transition:width .2s;}
+
+/* ── Demand summary bar ── */
+.demand-summary{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 24px;margin-bottom:24px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;}
+.ds-stat{text-align:center;}
+.ds-label{font-size:11px;color:var(--hint);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.ds-val{font-size:22px;font-weight:800;color:var(--text);}
+.ds-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.ds-sep{width:1px;height:48px;background:var(--border);}
+.ds-drift{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;}
+.ds-drift-warn{background:#fef3e2;color:var(--amber);}
+.ds-drift-ok{background:#e6f4ee;color:var(--teal);}
+
+/* ── Chart ── */
+.chart-wrap{position:relative;height:260px;}
+
+/* ── Plan tab ── */
+.plan-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.sku-row-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+.sku-row-head{display:flex;align-items:center;gap:14px;padding:12px 18px;cursor:pointer;user-select:none;}
+.sku-row-head:hover{background:var(--surface);}
+.sku-expand-icon{font-size:11px;color:var(--hint);transition:transform .2s;}
+.sku-expand-icon.open{transform:rotate(90deg);}
+.sku-row-name{font-size:13px;font-weight:700;flex:1;}
+.sku-row-detail{padding:0 18px 18px;}
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:14px;}
+.pos-card{background:var(--surface);border-radius:10px;padding:12px;}
+.pos-label{font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;}
+.pos-inp-wrap{display:flex;align-items:center;gap:4px;}
+.pos-inp{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:var(--card);color:var(--text);outline:none;}
+.pos-inp:focus{border-color:var(--accent);}
+.pos-unit{font-size:11px;color:var(--hint);}
+.sku-metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px;}
+.metric-tile{background:var(--surface);border-radius:10px;padding:12px;}
+.metric-label{font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.metric-val{font-size:18px;font-weight:800;color:var(--text);}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.metric-tile.alert{background:#fce8e8;border:1px solid rgba(201,64,64,0.2);}
+.metric-tile.alert .metric-val{color:var(--red);}
+.metric-tile.warn{background:#fef3e2;border:1px solid rgba(186,117,23,0.2);}
+.metric-tile.warn .metric-val{color:var(--amber);}
+.metric-tile.good{background:#e6f4ee;border:1px solid rgba(45,140,90,0.2);}
+.metric-tile.good .metric-val{color:var(--teal);}
+.zone-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:8px 0 4px;}
+.zone-safety{background:#fce8e8;}
+.zone-cycle{background:#fef3e2;}
+.zone-above{background:#e6f4ee;}
+.zone-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--hint);}
+
+/* ── PO tab ── */
+.po-header{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.po-block{flex:1;min-width:160px;}
+.po-block label{display:block;font-size:11px;font-weight:600;color:var(--hint);margin-bottom:4px;}
+.po-block input,.po-block select{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);color:var(--text);outline:none;}
+.po-block input:focus,.po-block select:focus{border-color:var(--accent);}
+.po-group{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.po-group-head{padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.po-group-title{font-size:13px;font-weight:700;}
+.po-total-row td{font-weight:700;background:var(--surface);}
+.po-actions{display:flex;gap:8px;margin-top:16px;}
+
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--card);border-radius:16px;padding:24px;width:560px;max-width:calc(100vw - 32px);max-height:80vh;overflow-y:auto;position:relative;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:18px;}
+.modal-close{position:absolute;top:18px;right:18px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+
+/* ── Equilibrium strip ── */
+.eq-strip{display:flex;align-items:stretch;margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.eq-block{flex:1;padding:10px 12px;text-align:center;}
+.eq-block+.eq-block{border-left:1px solid var(--border);}
+.eq-block-label{font-size:9px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.eq-block-val{font-size:18px;font-weight:800;color:var(--text);}
+.eq-block-sub{font-size:10px;color:var(--hint);margin-top:2px;}
+.eq-op{display:flex;align-items:center;justify-content:center;padding:0 4px;font-size:18px;font-weight:700;color:var(--hint);flex-shrink:0;}
+.eq-block-target .eq-block-val{color:var(--accent);}
+.eq-block-order .eq-block-val{color:var(--teal);}
+.eq-block-order-neg .eq-block-val{color:var(--hint);}
+.ss-tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:3px;vertical-align:middle;}
+.ss-tag-auto{background:var(--surface);color:var(--hint);border:1px solid var(--border);}
+.ss-tag-manual{background:#eeecfb;color:var(--purple);}
+
+/* ── Misc ── */
+.gap-risk-banner{background:#fce8e8;border:1px solid rgba(201,64,64,0.25);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--red);font-weight:600;margin-top:10px;}
+.info-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:4px 0;}
+.info-row strong{color:var(--text);}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.text-muted{color:var(--muted);}
+.text-sm{font-size:12px;}
+.fw-700{font-weight:700;}
+.mt-8{margin-top:8px;}
+.mt-16{margin-top:16px;}
+.mt-24{margin-top:24px;}
+.flex{display:flex;}
+.items-center{align-items:center;}
+.gap-8{gap:8px;}
+.gap-12{gap:12px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ GLOBAL BAR ══════════════ -->
+<div class="gbar">
+  <div class="gbar-brand">
+    <div class="brand-mark">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <span class="brand-name">Demand & Order Planner</span>
+  </div>
+  <div class="gsep"></div>
+  <div class="gfield">
+    <span class="glabel">HORIZON</span>
+    <select class="gsel" id="gHorizon">
+      <option value="30">30 days</option>
+      <option value="60">60 days</option>
+      <option value="90" selected>90 days</option>
+      <option value="120">120 days</option>
+    </select>
+  </div>
+  <div class="gfield">
+    <span class="glabel">SERVICE LEVEL</span>
+    <select class="gsel" id="gServiceLevel">
+      <option value="1.28">90%</option>
+      <option value="1.645" selected>95%</option>
+      <option value="2.05">98%</option>
+      <option value="2.326">99%</option>
+    </select>
+  </div>
+  <div class="gfield">
+    <span class="glabel">ORDER DATE</span>
+    <input type="date" class="ginp ginp-sm" id="gOrderDate"/>
+  </div>
+  <div class="gright">
+    <div class="updated-pill" id="updatedPill">Last updated: <span id="updatedAt">—</span></div>
+    <button class="btn btn-outline btn-sm" onclick="exportXLSX()">↓ Export</button>
+    <button class="btn btn-primary btn-sm" onclick="importClick()">↑ Import</button>
+    <input type="file" id="fileIn" accept=".xlsx,.csv" style="display:none" onchange="importFile(event)"/>
+  </div>
+</div>
+
+<!-- ══════════════ TABS ══════════════ -->
+<div class="tabs-bar">
+  <button class="tab-btn active" data-tab="catalog" onclick="switchTab('catalog')">
+    📦 Catalog <span class="tab-badge" id="badge-catalog">0</span>
+  </button>
+  <button class="tab-btn" data-tab="demand" onclick="switchTab('demand')">
+    📈 Demand
+  </button>
+  <button class="tab-btn" data-tab="plan" onclick="switchTab('plan')">
+    📋 Weekly Plan <span class="tab-badge" id="badge-plan">0</span>
+  </button>
+  <button class="tab-btn" data-tab="pos" onclick="switchTab('pos')">
+    🛒 Purchase Orders <span class="tab-badge" id="badge-pos">0</span>
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1: CATALOG
+══════════════════════════════════════════ -->
+<div class="tab-pane active" id="tab-catalog">
+<div class="content">
+
+  <div class="section-hdr">
+    <div>
+      <div class="section-title">SKU Catalog</div>
+      <div class="section-sub">Master list of products — stable data that rarely changes</div>
+    </div>
+    <div class="flex gap-8">
+      <button class="btn btn-outline btn-sm" onclick="openImportCatalog()">↑ Import catalog</button>
+      <button class="btn btn-primary" onclick="openSKUModal()">+ Add SKU</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-wrap">
+      <table id="catalogTable">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Name</th>
+            <th>Supplier</th>
+            <th>Lead Time (days)</th>
+            <th>MOQ</th>
+            <th>Cost ($)</th>
+            <th>Baseline Sales (u/day)</th>
+            <th>Std Dev (u/day)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="catalogBody">
+          <tr id="catalogEmpty">
+            <td colspan="9">
+              <div class="empty">
+                <div class="empty-icon">📦</div>
+                <div class="empty-title">No SKUs yet</div>
+                <div class="empty-sub">Add your first SKU to get started</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2: DEMAND
+══════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-demand">
+<div class="content">
+
+  <div class="section-hdr" style="margin-bottom:20px;">
+    <div>
+      <div class="section-title">Demand Planning</div>
+      <div class="section-sub">Blend channels to set portfolio velocity — drives projected demand in the Plan tab</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveDemand()">Save demand settings</button>
+  </div>
+
+  <!-- Demand summary -->
+  <div class="demand-summary" id="demandSummary">
+    <div class="ds-stat">
+      <div class="ds-label">Portfolio Velocity</div>
+      <div class="ds-val" id="ds-velocity">—</div>
+      <div class="ds-sub">units / day (channel blend)</div>
+    </div>
+    <div class="ds-sep"></div>
+    <div class="ds-stat">
+      <div class="ds-label">Catalog Baseline</div>
+      <div class="ds-val" id="ds-baseline">—</div>
+      <div class="ds-sub">units / day (SKU sum)</div>
+    </div>
+    <div class="ds-sep"></div>
+    <div class="ds-stat">
+      <div class="ds-label">Scaling Factor</div>
+      <div class="ds-val" id="ds-scale">—</div>
+      <div class="ds-sub">forecast vs. baseline</div>
+    </div>
+    <div class="ds-sep"></div>
+    <div class="ds-stat">
+      <div class="ds-label">90-Day Projected</div>
+      <div class="ds-val" id="ds-proj90">—</div>
+      <div class="ds-sub">units (seasonality-adjusted)</div>
+    </div>
+    <div class="ds-sep"></div>
+    <div id="ds-drift-wrap" class="ds-drift ds-drift-ok">✓ Volume on track</div>
+  </div>
+
+  <!-- Channel cards -->
+  <div class="channel-grid">
+
+    <!-- DTC -->
+    <div class="channel-card" id="ch-card-dtc">
+      <div class="ch-head">
+        <div class="ch-title">
+          <div class="ch-icon ch-icon-dtc">🛍</div>
+          DTC / E-commerce
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="dtc-enabled" onchange="chToggle('dtc')"/>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="ch-body" id="ch-body-dtc">
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Monthly Ad Spend ($)</label>
+            <input type="number" id="dtc-spend" placeholder="0" min="0" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>CPA ($)</label>
+            <input type="number" id="dtc-cpa" placeholder="0" min="0" step="0.01" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Units per Order</label>
+            <input type="number" id="dtc-upo" placeholder="1" min="1" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Repeat Rate (%)</label>
+            <input type="number" id="dtc-repeat" placeholder="0" min="0" max="100" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-result">
+          <span class="ch-result-label">Est. units/day</span>
+          <span class="ch-result-val" id="dtc-result">0.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Amazon -->
+    <div class="channel-card" id="ch-card-amazon">
+      <div class="ch-head">
+        <div class="ch-title">
+          <div class="ch-icon ch-icon-amz">📦</div>
+          Amazon
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="amazon-enabled" onchange="chToggle('amazon')"/>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="ch-body" id="ch-body-amazon">
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Monthly Ad Spend ($)</label>
+            <input type="number" id="amazon-spend" placeholder="0" min="0" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Amazon CPA ($)</label>
+            <input type="number" id="amazon-cpa" placeholder="0" min="0" step="0.01" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Units per Order</label>
+            <input type="number" id="amazon-upo" placeholder="1" min="1" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Organic (units/mo)</label>
+            <input type="number" id="amazon-organic" placeholder="0" min="0" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-result">
+          <span class="ch-result-label">Est. units/day</span>
+          <span class="ch-result-val" id="amazon-result">0.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wholesale -->
+    <div class="channel-card" id="ch-card-wholesale">
+      <div class="ch-head">
+        <div class="ch-title">
+          <div class="ch-icon ch-icon-ws">🏪</div>
+          Wholesale
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="wholesale-enabled" onchange="chToggle('wholesale')"/>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="ch-body" id="ch-body-wholesale">
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Active Doors</label>
+            <input type="number" id="wholesale-doors" placeholder="0" min="0" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Units / Store / Week</label>
+            <input type="number" id="wholesale-vpw" placeholder="0" min="0" step="0.1" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Promo Lift (%)</label>
+            <input type="number" id="wholesale-promo" placeholder="0" min="0" max="500" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Retailer / Chain</label>
+            <input type="text" id="wholesale-chain" placeholder="e.g. Whole Foods" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-result">
+          <span class="ch-result-label">Est. units/day</span>
+          <span class="ch-result-val" id="wholesale-result">0.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mass -->
+    <div class="channel-card" id="ch-card-mass">
+      <div class="ch-head">
+        <div class="ch-title">
+          <div class="ch-icon ch-icon-mass">🏬</div>
+          Mass Retail
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="mass-enabled" onchange="chToggle('mass')"/>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="ch-body" id="ch-body-mass">
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Active Doors</label>
+            <input type="number" id="mass-doors" placeholder="0" min="0" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Units / Store / Week</label>
+            <input type="number" id="mass-vpw" placeholder="0" min="0" step="0.1" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-row">
+          <div class="ch-field">
+            <label>Chain Name</label>
+            <input type="text" id="mass-chain" placeholder="e.g. Target, Walmart" oninput="calcDemand()"/>
+          </div>
+          <div class="ch-field">
+            <label>Promo Lift (%)</label>
+            <input type="number" id="mass-promo" placeholder="0" min="0" max="500" oninput="calcDemand()"/>
+          </div>
+        </div>
+        <div class="ch-result">
+          <span class="ch-result-label">Est. units/day</span>
+          <span class="ch-result-val" id="mass-result">0.0</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /channel-grid -->
+
+  <!-- Seasonality -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Seasonality Multipliers</div>
+        <div class="text-sm text-muted mt-8">Monthly index — 1.0 = baseline. Affects projected demand calculations.</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetSeasonality()">Reset to 1.0</button>
+    </div>
+    <div class="card-body">
+      <div class="season-grid" id="seasonGrid"></div>
+    </div>
+  </div>
+
+  <!-- 12-month chart -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">12-Month Demand Projection</div>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="demandChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3: WEEKLY PLAN
+══════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-plan">
+<div class="content">
+
+  <div class="section-hdr">
+    <div>
+      <div class="section-title">Weekly Position Review</div>
+      <div class="section-sub">Enter this week's on-hand, in-transit, and on-order quantities per SKU</div>
+    </div>
+    <div class="flex gap-8">
+      <button class="btn btn-outline btn-sm" onclick="collapseAll()">Collapse all</button>
+      <button class="btn btn-teal" onclick="calcAllSKUs()">Recalculate all</button>
+    </div>
+  </div>
+
+  <div id="planBody">
+    <div class="empty" id="planEmpty">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No SKUs in catalog</div>
+      <div class="empty-sub">Add SKUs in the Catalog tab first</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4: PURCHASE ORDERS
+══════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-pos">
+<div class="content">
+
+  <div class="section-hdr">
+    <div>
+      <div class="section-title">Purchase Orders</div>
+      <div class="section-sub">Auto-generated by supplier from plan calculations</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="calcAllSKUs(); buildPOTab()">Refresh POs</button>
+  </div>
+
+  <!-- PO settings -->
+  <div class="po-header">
+    <div class="po-block">
+      <label>Vendor Name (override)</label>
+      <input type="text" id="po-vendor" placeholder="Leave blank to use catalog supplier"/>
+    </div>
+    <div class="po-block">
+      <label>Requested Delivery Date</label>
+      <input type="date" id="po-delivery-date"/>
+    </div>
+    <div class="po-block">
+      <label>PO Notes</label>
+      <input type="text" id="po-notes" placeholder="Optional notes for all POs"/>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="exportPOExcel()">↓ Export POs</button>
+    </div>
+  </div>
+
+  <div id="poBody">
+    <div class="empty" id="poEmpty">
+      <div class="empty-icon">🛒</div>
+      <div class="empty-title">No purchase orders yet</div>
+      <div class="empty-sub">Complete the Weekly Plan tab and click Refresh POs</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- SKU Modal -->
+<div class="modal-bg" id="skuModal">
+  <div class="modal">
+    <div class="modal-title" id="skuModalTitle">Add SKU</div>
+    <button class="modal-close" onclick="closeSKUModal()">✕</button>
+    <div class="fgrid fgrid-2">
+      <div class="field">
+        <label>SKU Code *</label>
+        <input type="text" id="m-sku" placeholder="e.g. SKU-001"/>
+      </div>
+      <div class="field">
+        <label>Product Name *</label>
+        <input type="text" id="m-name" placeholder="e.g. Vanilla Protein Bar"/>
+      </div>
+      <div class="field">
+        <label>Supplier *</label>
+        <input type="text" id="m-supplier" placeholder="e.g. Acme Co"/>
+      </div>
+      <div class="field">
+        <label>Lead Time (days)</label>
+        <input type="number" id="m-lead" placeholder="30" min="1"/>
+      </div>
+      <div class="field">
+        <label>MOQ (units)</label>
+        <input type="number" id="m-moq" placeholder="0" min="0"/>
+      </div>
+      <div class="field">
+        <label>Unit Cost ($)</label>
+        <input type="number" id="m-cost" placeholder="0.00" step="0.01" min="0"/>
+      </div>
+      <div class="field">
+        <label>Baseline Sales (units/day)</label>
+        <input type="number" id="m-baseline" placeholder="0" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>Std Dev (units/day)</label>
+        <input type="number" id="m-stddev" placeholder="0" step="0.1" min="0"/>
+      </div>
+    </div>
+    <div id="m-history-row" style="display:none;margin-top:14px;padding:10px 12px;background:var(--surface);border-radius:8px;font-size:12px;color:var(--muted);">
+      <strong style="color:var(--text);">Sales History</strong> <span id="m-history-src" class="ss-tag ss-tag-manual" style="margin-left:4px;"></span>
+      <div id="m-history-vals" style="margin-top:4px;word-break:break-all;"></div>
+      <div style="margin-top:6px;">
+        <button class="btn btn-danger btn-xs" onclick="clearSKUHistory()">Clear history &amp; reset to manual</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSKUModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSKU()">Save SKU</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   STATE & PERSISTENCE
+══════════════════════════════════════════ */
+const LS = {
+  CAT:    'mep_dop3_cat',
+  POS:    'mep_dop3_pos',
+  DEMAND: 'mep_dop3_demand',
+  SET:    'mep_dop3_set',
+};
+
+let catalog = [];        // [{id,sku,name,supplier,leadTime,moq,cost,baselineSales,stdDev}]
+let positions = {};      // {skuId: {onHand, inTransit, itDays, onOrder, ooDays, dailySales}}
+let demandSettings = {}; // see defaultDemand()
+let settings = {};       // {horizon, serviceLevel, orderDate}
+
+function defaultDemand() {
+  return {
+    dtc:       { enabled: false, spend: 0, cpa: 0, upo: 1, repeat: 0 },
+    amazon:    { enabled: false, spend: 0, cpa: 0, upo: 1, organic: 0 },
+    wholesale: { enabled: false, doors: 0, vpw: 0, promoLift: 0, chain: '' },
+    mass:      { enabled: false, doors: 0, vpw: 0, chain: '', promo: 0 },
+    seasonMults: [1,1,1,1,1,1,1,1,1,1,1,1],
+  };
+}
+
+function save() {
+  localStorage.setItem(LS.CAT,    JSON.stringify(catalog));
+  localStorage.setItem(LS.POS,    JSON.stringify(positions));
+  localStorage.setItem(LS.DEMAND, JSON.stringify(demandSettings));
+  localStorage.setItem(LS.SET,    JSON.stringify({
+    horizon: document.getElementById('gHorizon').value,
+    serviceLevel: document.getElementById('gServiceLevel').value,
+    orderDate: document.getElementById('gOrderDate').value,
+  }));
+  const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('updatedAt').textContent = now;
+}
+
+function load() {
+  catalog        = JSON.parse(localStorage.getItem(LS.CAT)    || '[]');
+  positions      = JSON.parse(localStorage.getItem(LS.POS)    || '{}');
+  demandSettings = Object.assign(defaultDemand(), JSON.parse(localStorage.getItem(LS.DEMAND) || '{}'));
+  settings       = JSON.parse(localStorage.getItem(LS.SET)    || '{}');
+  // apply settings
+  if (settings.horizon)      document.getElementById('gHorizon').value = settings.horizon;
+  if (settings.serviceLevel) document.getElementById('gServiceLevel').value = settings.serviceLevel;
+  if (settings.orderDate)    document.getElementById('gOrderDate').value = settings.orderDate;
+  else {
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    document.getElementById('gOrderDate').value = t.toISOString().split('T')[0];
+  }
+}
+
+/* ══════════════════════════════════════════
+   TABS
+══════════════════════════════════════════ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  if (name === 'plan')   renderPlan();
+  if (name === 'pos')    buildPOTab();
+  if (name === 'demand') { loadDemandFields(); calcDemand(); }
+}
+
+/* ══════════════════════════════════════════
+   CATALOG
+══════════════════════════════════════════ */
+let editingId = null;
+
+function renderCatalog() {
+  const tbody = document.getElementById('catalogBody');
+  document.getElementById('badge-catalog').textContent = catalog.length;
+  if (catalog.length === 0) {
+    tbody.innerHTML = `<tr id="catalogEmpty"><td colspan="9">
+      <div class="empty"><div class="empty-icon">📦</div>
+      <div class="empty-title">No SKUs yet</div>
+      <div class="empty-sub">Add your first SKU to get started</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = catalog.map(s => `
+    <tr>
+      <td><strong>${esc(s.sku)}</strong></td>
+      <td>${esc(s.name)}</td>
+      <td>${esc(s.supplier)}</td>
+      <td>${s.leadTime}</td>
+      <td>${s.moq.toLocaleString()}</td>
+      <td>$${s.cost.toFixed(2)}</td>
+      <td>${s.baselineSales}${s.stdDevSource === 'auto' ? ' <span class="badge badge-purple" style="font-size:9px;">calc</span>' : ''}</td>
+      <td>${s.stdDev}${s.salesHistory?.length >= 2 ? ` <span class="badge badge-purple" style="font-size:9px;">${s.salesHistory.length}wk</span>` : ''}</td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="editSKU('${s.id}')">Edit</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteSKU('${s.id}')">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openSKUModal(id) {
+  editingId = id || null;
+  const m = document.getElementById('skuModal');
+  m.classList.add('open');
+  document.getElementById('skuModalTitle').textContent = id ? 'Edit SKU' : 'Add SKU';
+  if (id) {
+    const s = catalog.find(x => x.id === id);
+    if (s) {
+      document.getElementById('m-sku').value      = s.sku;
+      document.getElementById('m-name').value     = s.name;
+      document.getElementById('m-supplier').value = s.supplier;
+      document.getElementById('m-lead').value     = s.leadTime;
+      document.getElementById('m-moq').value      = s.moq;
+      document.getElementById('m-cost').value     = s.cost;
+      document.getElementById('m-baseline').value = s.baselineSales;
+      document.getElementById('m-stddev').value   = s.stdDev;
+      // Show history panel if data exists
+      const histRow = document.getElementById('m-history-row');
+      if (s.salesHistory?.length >= 2) {
+        histRow.style.display = '';
+        document.getElementById('m-history-src').textContent = `${s.salesHistory.length} weeks`;
+        document.getElementById('m-history-vals').textContent =
+          `Weekly units: ${s.salesHistory.join(', ')} → σ = ${s.stdDev} u/day`;
+        document.getElementById('m-stddev').readOnly = true;
+        document.getElementById('m-stddev').style.opacity = '0.6';
+      } else {
+        histRow.style.display = 'none';
+        document.getElementById('m-stddev').readOnly = false;
+        document.getElementById('m-stddev').style.opacity = '';
+      }
+    }
+  } else {
+    ['m-sku','m-name','m-supplier','m-lead','m-moq','m-cost','m-baseline','m-stddev']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('m-history-row').style.display = 'none';
+    document.getElementById('m-stddev').readOnly = false;
+    document.getElementById('m-stddev').style.opacity = '';
+  }
+}
+
+function closeSKUModal() {
+  document.getElementById('skuModal').classList.remove('open');
+  editingId = null;
+}
+
+function clearSKUHistory() {
+  const s = editingId ? catalog.find(x => x.id === editingId) : null;
+  if (!s) return;
+  s.salesHistory = [];
+  s.stdDevSource = 'manual';
+  document.getElementById('m-history-row').style.display = 'none';
+  document.getElementById('m-stddev').readOnly = false;
+  document.getElementById('m-stddev').style.opacity = '';
+  document.getElementById('m-stddev').value = '';
+}
+
+function saveSKU() {
+  const sku  = document.getElementById('m-sku').value.trim();
+  const name = document.getElementById('m-name').value.trim();
+  const supp = document.getElementById('m-supplier').value.trim();
+  if (!sku || !name || !supp) { alert('SKU, Name, and Supplier are required.'); return; }
+  // Preserve history from existing record if editing
+  const existing = editingId ? catalog.find(x => x.id === editingId) : null;
+  const obj = {
+    id: editingId || uid(),
+    sku, name, supplier: supp,
+    leadTime:      parseFloat(document.getElementById('m-lead').value)     || 30,
+    moq:           parseFloat(document.getElementById('m-moq').value)      || 0,
+    cost:          parseFloat(document.getElementById('m-cost').value)     || 0,
+    baselineSales: parseFloat(document.getElementById('m-baseline').value) || 0,
+    stdDev:        parseFloat(document.getElementById('m-stddev').value)   || 0,
+    salesHistory:  existing?.salesHistory || [],
+    stdDevSource:  existing?.stdDevSource || 'manual',
+  };
+  if (editingId) {
+    const idx = catalog.findIndex(x => x.id === editingId);
+    if (idx >= 0) catalog[idx] = obj;
+  } else {
+    catalog.push(obj);
+  }
+  closeSKUModal();
+  renderCatalog();
+  save();
+}
+
+function editSKU(id)   { openSKUModal(id); }
+function deleteSKU(id) {
+  if (!confirm('Delete this SKU?')) return;
+  catalog = catalog.filter(x => x.id !== id);
+  delete positions[id];
+  renderCatalog();
+  save();
+}
+
+function openImportCatalog() { importClick(); }
+
+/* ══════════════════════════════════════════
+   DEMAND
+══════════════════════════════════════════ */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let demandChart = null;
+
+function buildSeasonGrid() {
+  const g = document.getElementById('seasonGrid');
+  g.innerHTML = MONTHS.map((m, i) => `
+    <div class="season-cell">
+      <label>${m}</label>
+      <input type="number" id="sm-${i}" value="${demandSettings.seasonMults[i] ?? 1}"
+        min="0" max="5" step="0.05" oninput="onSeasonInput(${i})"/>
+      <div class="season-bar" id="smbar-${i}" style="width:${Math.min(100,(demandSettings.seasonMults[i]||1)*50)}%"></div>
+    </div>
+  `).join('');
+}
+
+function onSeasonInput(i) {
+  const v = parseFloat(document.getElementById(`sm-${i}`).value) || 0;
+  demandSettings.seasonMults[i] = v;
+  document.getElementById(`smbar-${i}`).style.width = Math.min(100, v * 50) + '%';
+  calcDemand();
+}
+
+function resetSeasonality() {
+  demandSettings.seasonMults = [1,1,1,1,1,1,1,1,1,1,1,1];
+  buildSeasonGrid();
+  calcDemand();
+}
+
+function loadDemandFields() {
+  const d = demandSettings;
+  // DTC
+  document.getElementById('dtc-enabled').checked  = d.dtc.enabled;
+  document.getElementById('dtc-spend').value       = d.dtc.spend || '';
+  document.getElementById('dtc-cpa').value         = d.dtc.cpa   || '';
+  document.getElementById('dtc-upo').value         = d.dtc.upo   || 1;
+  document.getElementById('dtc-repeat').value      = d.dtc.repeat || '';
+  updateCardStyle('dtc', d.dtc.enabled);
+  // Amazon
+  document.getElementById('amazon-enabled').checked = d.amazon.enabled;
+  document.getElementById('amazon-spend').value      = d.amazon.spend   || '';
+  document.getElementById('amazon-cpa').value        = d.amazon.cpa     || '';
+  document.getElementById('amazon-upo').value        = d.amazon.upo     || 1;
+  document.getElementById('amazon-organic').value    = d.amazon.organic || '';
+  updateCardStyle('amazon', d.amazon.enabled);
+  // Wholesale
+  document.getElementById('wholesale-enabled').checked = d.wholesale.enabled;
+  document.getElementById('wholesale-doors').value     = d.wholesale.doors   || '';
+  document.getElementById('wholesale-vpw').value       = d.wholesale.vpw     || '';
+  document.getElementById('wholesale-promo').value     = d.wholesale.promoLift || '';
+  document.getElementById('wholesale-chain').value     = d.wholesale.chain   || '';
+  updateCardStyle('wholesale', d.wholesale.enabled);
+  // Mass
+  document.getElementById('mass-enabled').checked = d.mass.enabled;
+  document.getElementById('mass-doors').value      = d.mass.doors  || '';
+  document.getElementById('mass-vpw').value        = d.mass.vpw    || '';
+  document.getElementById('mass-chain').value      = d.mass.chain  || '';
+  document.getElementById('mass-promo').value      = d.mass.promo  || '';
+  updateCardStyle('mass', d.mass.enabled);
+  // Seasonality
+  buildSeasonGrid();
+}
+
+function chToggle(ch) {
+  const enabled = document.getElementById(`${ch}-enabled`).checked;
+  updateCardStyle(ch, enabled);
+  calcDemand();
+}
+
+function updateCardStyle(ch, enabled) {
+  const card = document.getElementById(`ch-card-${ch}`);
+  const body = document.getElementById(`ch-body-${ch}`);
+  if (enabled) {
+    card.classList.add('enabled');
+    body.style.opacity = '1';
+  } else {
+    card.classList.remove('enabled');
+    body.style.opacity = '0.45';
+  }
+}
+
+function getChannelVelocity() {
+  let dtcV = 0, amzV = 0, wsV = 0, massV = 0;
+  const d = demandSettings;
+
+  if (document.getElementById('dtc-enabled').checked) {
+    const spend  = parseFloat(document.getElementById('dtc-spend').value)  || 0;
+    const cpa    = parseFloat(document.getElementById('dtc-cpa').value)    || 0;
+    const upo    = parseFloat(document.getElementById('dtc-upo').value)    || 1;
+    const repeat = parseFloat(document.getElementById('dtc-repeat').value) || 0;
+    if (cpa > 0 && spend > 0) {
+      const orders = spend / cpa;
+      dtcV = (orders * upo * (1 + repeat/100)) / 30;
+    }
+  }
+  if (document.getElementById('amazon-enabled').checked) {
+    const spend   = parseFloat(document.getElementById('amazon-spend').value)   || 0;
+    const cpa     = parseFloat(document.getElementById('amazon-cpa').value)     || 0;
+    const upo     = parseFloat(document.getElementById('amazon-upo').value)     || 1;
+    const organic = parseFloat(document.getElementById('amazon-organic').value) || 0;
+    const paid    = (cpa > 0 && spend > 0) ? (spend / cpa * upo) : 0;
+    amzV = (paid + organic) / 30;
+  }
+  if (document.getElementById('wholesale-enabled').checked) {
+    const doors = parseFloat(document.getElementById('wholesale-doors').value) || 0;
+    const vpw   = parseFloat(document.getElementById('wholesale-vpw').value)   || 0;
+    const promo = parseFloat(document.getElementById('wholesale-promo').value) || 0;
+    wsV = doors * vpw / 7 * (1 + promo / 100);
+  }
+  if (document.getElementById('mass-enabled').checked) {
+    const doors = parseFloat(document.getElementById('mass-doors').value) || 0;
+    const vpw   = parseFloat(document.getElementById('mass-vpw').value)   || 0;
+    const promo = parseFloat(document.getElementById('mass-promo').value) || 0;
+    massV = doors * vpw / 7 * (1 + promo / 100);
+  }
+
+  document.getElementById('dtc-result').textContent      = dtcV.toFixed(1);
+  document.getElementById('amazon-result').textContent   = amzV.toFixed(1);
+  document.getElementById('wholesale-result').textContent = wsV.toFixed(1);
+  document.getElementById('mass-result').textContent     = massV.toFixed(1);
+
+  return { dtcV, amzV, wsV, massV, total: dtcV + amzV + wsV + massV };
+}
+
+function calcDemand() {
+  const ch = getChannelVelocity();
+  const total = ch.total;
+  const baseline = catalog.reduce((s, x) => s + (x.baselineSales || 0), 0);
+  const scale = (baseline > 0 && total > 0) ? total / baseline : 1;
+
+  // 90-day projection with seasonality
+  const mults = getCurrentSeasonMults();
+  const oDate = document.getElementById('gOrderDate').value || new Date().toISOString().split('T')[0];
+  const proj90 = Math.round(projDemand(total, oDate, 90, mults));
+
+  // Update summary
+  document.getElementById('ds-velocity').textContent = total.toFixed(1);
+  document.getElementById('ds-baseline').textContent = baseline.toFixed(1);
+  document.getElementById('ds-scale').textContent    = scale.toFixed(2) + '×';
+  document.getElementById('ds-proj90').textContent   = proj90.toLocaleString();
+
+  // Drift detection: >20% shift from baseline
+  const driftEl = document.getElementById('ds-drift-wrap');
+  const drift = baseline > 0 ? Math.abs(total - baseline) / baseline : 0;
+  if (drift > 0.2 && baseline > 0) {
+    const dir = total > baseline ? '▲' : '▼';
+    driftEl.className = 'ds-drift ds-drift-warn';
+    driftEl.textContent = `${dir} ${(drift*100).toFixed(0)}% volume shift from baseline`;
+  } else {
+    driftEl.className = 'ds-drift ds-drift-ok';
+    driftEl.textContent = '✓ Volume on track';
+  }
+
+  updateDemandChart(ch, mults, oDate);
+}
+
+function getCurrentSeasonMults() {
+  return Array.from({length:12}, (_,i) => {
+    const el = document.getElementById(`sm-${i}`);
+    return el ? (parseFloat(el.value) || 1) : (demandSettings.seasonMults[i] || 1);
+  });
+}
+
+function projDemand(velocity, orderDate, horizon, mults) {
+  if (velocity <= 0) return 0;
+  const start = new Date(orderDate + 'T00:00:00');
+  let d = 0;
+  for (let i = 0; i < horizon; i++) {
+    const dt = new Date(start);
+    dt.setDate(dt.getDate() + i);
+    d += velocity * (mults[dt.getMonth()] || 1);
+  }
+  return d;
+}
+
+function updateDemandChart(ch, mults, startDateStr) {
+  const ctx = document.getElementById('demandChart').getContext('2d');
+  const start = new Date(startDateStr + 'T00:00:00');
+  const labels = [];
+  const dtcData = [], amzData = [], wsData = [], massData = [];
+
+  for (let m = 0; m < 12; m++) {
+    const dt = new Date(start);
+    dt.setMonth(dt.getMonth() + m);
+    labels.push(MONTHS[dt.getMonth()] + ' ' + dt.getFullYear().toString().slice(2));
+    const mult = mults[dt.getMonth()] || 1;
+    const days = daysInMonth(dt.getFullYear(), dt.getMonth());
+    dtcData.push(Math.round(ch.dtcV * mult * days));
+    amzData.push(Math.round(ch.amzV * mult * days));
+    wsData.push(Math.round(ch.wsV  * mult * days));
+    massData.push(Math.round(ch.massV * mult * days));
+  }
+
+  if (demandChart) demandChart.destroy();
+  demandChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'DTC',       data: dtcData,  backgroundColor: '#C94040cc', borderRadius: 4 },
+        { label: 'Amazon',    data: amzData,  backgroundColor: '#BA7517cc', borderRadius: 4 },
+        { label: 'Wholesale', data: wsData,   backgroundColor: '#2D8C5Acc', borderRadius: 4 },
+        { label: 'Mass',      data: massData, backgroundColor: '#7F77DDcc', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#eee' },
+             ticks: { callback: v => v.toLocaleString() } }
+      }
+    }
+  });
+}
+
+function saveDemand() {
+  const mults = getCurrentSeasonMults();
+  demandSettings = {
+    dtc: {
+      enabled: document.getElementById('dtc-enabled').checked,
+      spend:   parseFloat(document.getElementById('dtc-spend').value)  || 0,
+      cpa:     parseFloat(document.getElementById('dtc-cpa').value)    || 0,
+      upo:     parseFloat(document.getElementById('dtc-upo').value)    || 1,
+      repeat:  parseFloat(document.getElementById('dtc-repeat').value) || 0,
+    },
+    amazon: {
+      enabled: document.getElementById('amazon-enabled').checked,
+      spend:   parseFloat(document.getElementById('amazon-spend').value)   || 0,
+      cpa:     parseFloat(document.getElementById('amazon-cpa').value)     || 0,
+      upo:     parseFloat(document.getElementById('amazon-upo').value)     || 1,
+      organic: parseFloat(document.getElementById('amazon-organic').value) || 0,
+    },
+    wholesale: {
+      enabled:   document.getElementById('wholesale-enabled').checked,
+      doors:     parseFloat(document.getElementById('wholesale-doors').value) || 0,
+      vpw:       parseFloat(document.getElementById('wholesale-vpw').value)   || 0,
+      promoLift: parseFloat(document.getElementById('wholesale-promo').value) || 0,
+      chain:     document.getElementById('wholesale-chain').value || '',
+    },
+    mass: {
+      enabled: document.getElementById('mass-enabled').checked,
+      doors:   parseFloat(document.getElementById('mass-doors').value) || 0,
+      vpw:     parseFloat(document.getElementById('mass-vpw').value)   || 0,
+      chain:   document.getElementById('mass-chain').value || '',
+      promo:   parseFloat(document.getElementById('mass-promo').value) || 0,
+    },
+    seasonMults: mults,
+  };
+  save();
+  const btn = event.target;
+  btn.textContent = '✓ Saved';
+  btn.style.background = 'var(--teal)';
+  setTimeout(() => { btn.textContent = 'Save demand settings'; btn.style.background = ''; }, 1800);
+}
+
+/* ══════════════════════════════════════════
+   PLAN TAB
+══════════════════════════════════════════ */
+function getForecastVelocity(sku) {
+  // Portfolio-level scaling from demand tab
+  const ch = getChannelVelocityFromSettings();
+  const portfolioBaseline = catalog.reduce((s, x) => s + (x.baselineSales || 0), 0);
+  if (ch.total > 0 && portfolioBaseline > 0) {
+    return sku.baselineSales * (ch.total / portfolioBaseline);
+  }
+  return sku.baselineSales || 0;
+}
+
+function getChannelVelocityFromSettings() {
+  const d = demandSettings;
+  let dtcV = 0, amzV = 0, wsV = 0, massV = 0;
+  if (d.dtc && d.dtc.enabled && d.dtc.cpa > 0 && d.dtc.spend > 0) {
+    dtcV = (d.dtc.spend / d.dtc.cpa * (d.dtc.upo||1) * (1 + (d.dtc.repeat||0)/100)) / 30;
+  }
+  if (d.amazon && d.amazon.enabled) {
+    const paid = (d.amazon.cpa > 0 && d.amazon.spend > 0) ? (d.amazon.spend / d.amazon.cpa * (d.amazon.upo||1)) : 0;
+    amzV = (paid + (d.amazon.organic||0)) / 30;
+  }
+  if (d.wholesale && d.wholesale.enabled && d.wholesale.doors > 0) {
+    wsV = d.wholesale.doors * (d.wholesale.vpw||0) / 7 * (1 + (d.wholesale.promoLift||0)/100);
+  }
+  if (d.mass && d.mass.enabled && d.mass.doors > 0) {
+    massV = d.mass.doors * (d.mass.vpw||0) / 7 * (1 + (d.mass.promo||0)/100);
+  }
+  return { dtcV, amzV, wsV, massV, total: dtcV + amzV + wsV + massV };
+}
+
+function renderPlan() {
+  const body = document.getElementById('planBody');
+  document.getElementById('badge-plan').textContent = catalog.length;
+  if (catalog.length === 0) {
+    body.innerHTML = `<div class="empty" id="planEmpty">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No SKUs in catalog</div>
+      <div class="empty-sub">Add SKUs in the Catalog tab first</div></div>`;
+    return;
+  }
+  body.innerHTML = catalog.map(sku => renderSKUCard(sku)).join('');
+  catalog.forEach(sku => calcSKU(sku.id));
+}
+
+function renderSKUCard(sku) {
+  const pos = positions[sku.id] || {};
+  const z = parseFloat(document.getElementById('gServiceLevel').value) || 1.645;
+  const horizon = parseInt(document.getElementById('gHorizon').value) || 90;
+  const autoSS = Math.round(z * (sku.stdDev || 0) * Math.sqrt(sku.leadTime || 30));
+  const ssOverrideVal = pos.safetyStockOverride != null ? pos.safetyStockOverride : '';
+  return `
+    <div class="sku-row-card" id="skucard-${sku.id}">
+      <div class="sku-row-head" onclick="toggleExpand('${sku.id}')">
+        <span class="sku-expand-icon open" id="exp-${sku.id}">▶</span>
+        <span class="sku-row-name">${esc(sku.name)} <span class="text-muted text-sm">${esc(sku.sku)}</span></span>
+        <span class="badge badge-gray" id="status-${sku.id}">—</span>
+        <span class="text-sm text-muted" id="dos-${sku.id}"></span>
+      </div>
+      <div class="sku-row-detail" id="det-${sku.id}">
+        <div class="pos-grid">
+          <div class="pos-card">
+            <div class="pos-label">On Hand (units)</div>
+            <input class="pos-inp" type="number" id="pos-oh-${sku.id}" value="${pos.onHand||''}" min="0"
+              placeholder="0" oninput="calcSKU('${sku.id}')"/>
+          </div>
+          <div class="pos-card">
+            <div class="pos-label">In Transit (units)</div>
+            <input class="pos-inp" type="number" id="pos-it-${sku.id}" value="${pos.inTransit||''}" min="0"
+              placeholder="0" oninput="calcSKU('${sku.id}')"/>
+          </div>
+          <div class="pos-card">
+            <div class="pos-label">In Transit — ETA (days)</div>
+            <input class="pos-inp" type="number" id="pos-itd-${sku.id}" value="${pos.itDays||''}" min="0"
+              placeholder="—" oninput="calcSKU('${sku.id}')"/>
+          </div>
+          <div class="pos-card">
+            <div class="pos-label">On Order (units)</div>
+            <input class="pos-inp" type="number" id="pos-oo-${sku.id}" value="${pos.onOrder||''}" min="0"
+              placeholder="0" oninput="calcSKU('${sku.id}')"/>
+          </div>
+          <div class="pos-card">
+            <div class="pos-label">On Order — ETA (days)</div>
+            <input class="pos-inp" type="number" id="pos-ood-${sku.id}" value="${pos.ooDays||''}" min="0"
+              placeholder="—" oninput="calcSKU('${sku.id}')"/>
+          </div>
+          <div class="pos-card">
+            <div class="pos-label">Actual Sales (units/day)</div>
+            <input class="pos-inp" type="number" id="pos-ds-${sku.id}" value="${pos.dailySales||''}" min="0"
+              step="0.1" placeholder="${sku.baselineSales||0}" oninput="calcSKU('${sku.id}')"/>
+          </div>
+          <div class="pos-card" style="border:1px solid rgba(127,119,221,0.35);background:#f9f8fe;">
+            <div class="pos-label" style="color:var(--purple);">Safety Stock Override</div>
+            <div class="pos-inp-wrap">
+              <input class="pos-inp" type="number" id="pos-ss-${sku.id}" value="${ssOverrideVal}"
+                min="0" placeholder="auto: ${autoSS}" oninput="calcSKU('${sku.id}')"/>
+              <span class="pos-unit">u</span>
+            </div>
+            <div style="font-size:10px;color:var(--hint);margin-top:4px;">blank = formula (z × σ × √LT)</div>
+          </div>
+        </div>
+
+        <!-- Equilibrium strip -->
+        <div class="eq-strip" id="eq-strip-${sku.id}">
+          <div class="eq-block">
+            <div class="eq-block-label">Safety Stock</div>
+            <div class="eq-block-val" id="eq-ss-${sku.id}">—</div>
+            <div class="eq-block-sub" id="eq-ss-sub-${sku.id}">buffer units</div>
+          </div>
+          <div class="eq-op">+</div>
+          <div class="eq-block">
+            <div class="eq-block-label">Projected Demand</div>
+            <div class="eq-block-val" id="eq-dem-${sku.id}">—</div>
+            <div class="eq-block-sub">${horizon}d forecast</div>
+          </div>
+          <div class="eq-op">=</div>
+          <div class="eq-block eq-block-target">
+            <div class="eq-block-label">Target Stock</div>
+            <div class="eq-block-val" id="eq-tgt-${sku.id}">—</div>
+            <div class="eq-block-sub">units needed</div>
+          </div>
+          <div class="eq-op">−</div>
+          <div class="eq-block">
+            <div class="eq-block-label">Current Supply</div>
+            <div class="eq-block-val" id="eq-sup-${sku.id}">—</div>
+            <div class="eq-block-sub">hand + transit + order</div>
+          </div>
+          <div class="eq-op">=</div>
+          <div class="eq-block eq-block-order" id="eq-ord-block-${sku.id}">
+            <div class="eq-block-label">Order Qty</div>
+            <div class="eq-block-val" id="eq-ord-${sku.id}">—</div>
+            <div class="eq-block-sub" id="eq-ord-sub-${sku.id}">units to buy</div>
+          </div>
+        </div>
+
+        <div class="sku-metrics" id="metrics-${sku.id}"></div>
+        <div id="gap-${sku.id}"></div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleExpand(id) {
+  const det = document.getElementById('det-' + id);
+  const ico = document.getElementById('exp-' + id);
+  const open = det.style.display !== 'none' && det.style.display !== '';
+  det.style.display = open ? 'none' : '';
+  ico.classList.toggle('open', !open);
+}
+
+function collapseAll() {
+  catalog.forEach(s => {
+    const det = document.getElementById('det-' + s.id);
+    const ico = document.getElementById('exp-' + s.id);
+    if (det) { det.style.display = 'none'; ico.classList.remove('open'); }
+  });
+}
+
+function calcAllSKUs() { catalog.forEach(s => calcSKU(s.id)); save(); }
+
+function calcSKU(id) {
+  const sku = catalog.find(x => x.id === id);
+  if (!sku) return;
+
+  const oh  = parseFloat(document.getElementById(`pos-oh-${id}`)?.value)  || 0;
+  const it  = parseFloat(document.getElementById(`pos-it-${id}`)?.value)  || 0;
+  const itd = parseFloat(document.getElementById(`pos-itd-${id}`)?.value);
+  const oo  = parseFloat(document.getElementById(`pos-oo-${id}`)?.value)  || 0;
+  const ood = parseFloat(document.getElementById(`pos-ood-${id}`)?.value);
+  const ds  = parseFloat(document.getElementById(`pos-ds-${id}`)?.value);
+  const ssRaw = parseFloat(document.getElementById(`pos-ss-${id}`)?.value);
+  const ssIsManual = !isNaN(ssRaw) && document.getElementById(`pos-ss-${id}`)?.value.trim() !== '';
+
+  positions[id] = {
+    onHand: oh, inTransit: it,
+    itDays: isNaN(itd) ? null : itd,
+    onOrder: oo,
+    ooDays: isNaN(ood) ? null : ood,
+    dailySales: isNaN(ds) ? null : ds,
+    safetyStockOverride: ssIsManual ? Math.round(ssRaw) : null,
+  };
+
+  const actualV   = positions[id].dailySales ?? sku.baselineSales ?? 0;
+  const forecastV = getForecastVelocity(sku);
+  const z         = parseFloat(document.getElementById('gServiceLevel').value) || 1.645;
+  const horizon   = parseInt(document.getElementById('gHorizon').value) || 90;
+  const oDate     = document.getElementById('gOrderDate').value || new Date().toISOString().split('T')[0];
+  const mults     = demandSettings.seasonMults || Array(12).fill(1);
+
+  // Safety & cycle stock
+  const safetyStockAuto = Math.round(z * (sku.stdDev || 0) * Math.sqrt(sku.leadTime || 30));
+  const safetyStock = ssIsManual ? Math.round(ssRaw) : safetyStockAuto;
+  // Keep placeholder in sync with current service level
+  const ssEl = document.getElementById(`pos-ss-${id}`);
+  if (ssEl && !ssIsManual) ssEl.placeholder = `auto: ${safetyStockAuto}`;
+  const cycleStock  = Math.round(actualV * (sku.leadTime || 30));
+  const projDem     = Math.round(projDemand(forecastV, oDate, horizon, mults));
+  const targetStock = safetyStock + projDem;
+
+  // Timeline-aware coverage
+  const cov = timelineCoverage(oh, it, positions[id].itDays, oo, positions[id].ooDays, actualV);
+
+  // Suggest order quantity
+  const currentSupply = oh + it + oo;
+  const suggestQty = Math.max(0, Math.ceil(targetStock - currentSupply));
+  const orderQty = Math.max(suggestQty, sku.moq || 0);
+
+  // Update status badge
+  const statusEl = document.getElementById(`status-${id}`);
+  const dosEl    = document.getElementById(`dos-${id}`);
+  if (cov.gapRisk) {
+    statusEl.className = 'badge badge-red'; statusEl.textContent = '⚠ Gap Risk';
+  } else if (cov.totalCoverage < horizon * 0.5) {
+    statusEl.className = 'badge badge-amber'; statusEl.textContent = '↓ Low';
+  } else if (orderQty > 0) {
+    statusEl.className = 'badge badge-amber'; statusEl.textContent = 'Order needed';
+  } else {
+    statusEl.className = 'badge badge-green'; statusEl.textContent = '✓ OK';
+  }
+  dosEl.textContent = actualV > 0 ? `${cov.totalCoverage.toFixed(0)}d coverage` : '';
+
+  // Zone bar
+  const maxBar = Math.max(targetStock, currentSupply, 1);
+  const safetyPct  = Math.min(100, safetyStock / maxBar * 100);
+  const cyclePct   = Math.min(100, cycleStock   / maxBar * 100);
+  const abovePct   = Math.max(0, 100 - safetyPct - cyclePct);
+
+  // Metrics
+  const metricsEl = document.getElementById(`metrics-${id}`);
+  const tileClass = (v) => {
+    if (cov.gapRisk) return 'alert';
+    if (cov.totalCoverage < horizon * 0.5) return 'warn';
+    return 'good';
+  };
+  metricsEl.innerHTML = `
+    <div class="metric-tile">
+      <div class="metric-label">On-Hand Days</div>
+      <div class="metric-val">${actualV > 0 ? cov.onHandDays.toFixed(0) : '∞'}</div>
+      <div class="metric-sub">before first delivery needed</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-label">Total Coverage</div>
+      <div class="metric-val">${actualV > 0 ? cov.totalCoverage.toFixed(0) + 'd' : '∞'}</div>
+      <div class="metric-sub">incl. in-transit & on-order</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-label">Safety Stock <span class="ss-tag ${ssIsManual ? 'ss-tag-manual' : 'ss-tag-auto'}">${ssIsManual ? 'manual' : 'auto'}</span></div>
+      <div class="metric-val">${safetyStock.toLocaleString()}</div>
+      <div class="metric-sub">${ssIsManual ? `formula = ${safetyStockAuto}` : 'z × σ × √lead time'}</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-label">Cycle Stock</div>
+      <div class="metric-val">${cycleStock.toLocaleString()}</div>
+      <div class="metric-sub">working inventory</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-label">Target (${horizon}d)</div>
+      <div class="metric-val">${targetStock.toLocaleString()}</div>
+      <div class="metric-sub">safety + projected demand</div>
+    </div>
+    <div class="metric-tile ${orderQty > 0 ? 'warn' : 'good'}">
+      <div class="metric-label">Suggested Order</div>
+      <div class="metric-val">${orderQty > 0 ? orderQty.toLocaleString() : '—'}</div>
+      <div class="metric-sub">${sku.moq > 0 ? 'MOQ: ' + sku.moq.toLocaleString() : 'no MOQ set'}</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-label">Forecast Velocity</div>
+      <div class="metric-val">${forecastV.toFixed(1)}</div>
+      <div class="metric-sub">units/day (channel-derived)</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-label">Actual Velocity</div>
+      <div class="metric-val">${actualV.toFixed(1)}</div>
+      <div class="metric-sub">units/day (current sales)</div>
+    </div>
+  `;
+
+  // Zone bar + labels
+  metricsEl.innerHTML += `
+    <div style="grid-column:1/-1;margin-top:6px;">
+      <div class="zone-bar">
+        <div class="zone-safety" style="width:${safetyPct.toFixed(1)}%"></div>
+        <div class="zone-cycle"  style="width:${cyclePct.toFixed(1)}%"></div>
+        <div class="zone-above"  style="width:${abovePct.toFixed(1)}%"></div>
+      </div>
+      <div class="zone-labels">
+        <span>Safety (${safetyStock})</span>
+        <span>Cycle (${cycleStock})</span>
+        <span>Target (${targetStock})</span>
+      </div>
+    </div>
+  `;
+
+  // Equilibrium strip
+  const currentSupplyTotal = oh + it + oo;
+  const eqSS  = document.getElementById(`eq-ss-${id}`);
+  const eqSSSub = document.getElementById(`eq-ss-sub-${id}`);
+  const eqDem = document.getElementById(`eq-dem-${id}`);
+  const eqTgt = document.getElementById(`eq-tgt-${id}`);
+  const eqSup = document.getElementById(`eq-sup-${id}`);
+  const eqOrd = document.getElementById(`eq-ord-${id}`);
+  const eqOrdSub = document.getElementById(`eq-ord-sub-${id}`);
+  const eqOrdBlock = document.getElementById(`eq-ord-block-${id}`);
+  if (eqSS)  eqSS.textContent  = safetyStock.toLocaleString();
+  if (eqSSSub) eqSSSub.textContent = ssIsManual ? 'manual override' : 'auto formula';
+  if (eqDem) eqDem.textContent  = projDem.toLocaleString();
+  if (eqTgt) eqTgt.textContent  = targetStock.toLocaleString();
+  if (eqSup) eqSup.textContent  = currentSupplyTotal.toLocaleString();
+  if (eqOrd) eqOrd.textContent  = orderQty > 0 ? orderQty.toLocaleString() : '0';
+  if (eqOrdSub) eqOrdSub.textContent = orderQty > 0 ? (sku.moq > 0 ? `MOQ: ${sku.moq}` : 'units to buy') : 'fully covered';
+  if (eqOrdBlock) {
+    eqOrdBlock.className = orderQty > 0
+      ? 'eq-block eq-block-order'
+      : 'eq-block eq-block-order-neg';
+  }
+
+  // Gap risk banner
+  const gapEl = document.getElementById(`gap-${id}`);
+  gapEl.innerHTML = cov.gapRisk
+    ? `<div class="gap-risk-banner">⚠ Gap risk: on-hand runs out ${cov.gapDays} day(s) before first delivery arrives. Order immediately or expedite in-transit.</div>`
+    : '';
+
+  // Persist
+  positions[id] = { ...positions[id], _calc: { suggestQty: orderQty, forecastV, actualV, targetStock, safetyStock, cycleStock, projDem } };
+  save();
+}
+
+/* Timeline-aware coverage */
+function timelineCoverage(onHand, inTransit, itDays, onOrder, ooDays, velocity) {
+  if (velocity <= 0) return { totalCoverage: 9999, gapRisk: false, gapDays: 0, onHandDays: 9999 };
+  const onHandDays = onHand / velocity;
+  const events = [];
+  if (inTransit > 0 && itDays !== null && itDays >= 0) events.push({ d: itDays, qty: inTransit });
+  if (onOrder  > 0 && ooDays  !== null && ooDays  >= 0) events.push({ d: ooDays,  qty: onOrder  });
+  events.sort((a, b) => a.d - b.d);
+  const firstArrival = events.length > 0 ? events[0].d : 9999;
+  const gapRisk = firstArrival < 9999 && onHandDays < firstArrival;
+  const gapDays = gapRisk ? Math.ceil(firstArrival - onHandDays) : 0;
+  let supply = onHand, day = 0;
+  for (const ev of events) {
+    supply -= velocity * (ev.d - day);
+    if (supply < 0) supply = 0;
+    supply += ev.qty;
+    day = ev.d;
+  }
+  const remainAfterLast = supply > 0 ? supply / velocity : 0;
+  const totalCoverage = day + remainAfterLast;
+  return { totalCoverage, gapRisk, gapDays, onHandDays };
+}
+
+/* ══════════════════════════════════════════
+   PO TAB
+══════════════════════════════════════════ */
+function buildPOTab() {
+  const body = document.getElementById('poBody');
+
+  // Group SKUs by supplier where order is needed
+  const bySupplier = {};
+  let totalPOCount = 0;
+  catalog.forEach(sku => {
+    const pos = positions[sku.id] || {};
+    const calc = pos._calc || {};
+    const qty = calc.suggestQty || 0;
+    if (qty <= 0) return;
+    const supplier = (document.getElementById('po-vendor')?.value || '').trim() || sku.supplier;
+    if (!bySupplier[supplier]) bySupplier[supplier] = [];
+    bySupplier[supplier].push({ sku, qty, calc });
+    totalPOCount++;
+  });
+
+  document.getElementById('badge-pos').textContent = totalPOCount;
+
+  if (totalPOCount === 0) {
+    body.innerHTML = `<div class="empty">
+      <div class="empty-icon">✅</div>
+      <div class="empty-title">No orders needed</div>
+      <div class="empty-sub">All SKUs are within target stock levels</div></div>`;
+    return;
+  }
+
+  const delivDate = document.getElementById('po-delivery-date')?.value || '';
+  const notes     = document.getElementById('po-notes')?.value || '';
+
+  body.innerHTML = Object.entries(bySupplier).map(([supplier, lines]) => {
+    const totalCost = lines.reduce((s, l) => s + l.qty * (l.sku.cost || 0), 0);
+    const rows = lines.map(l => `
+      <tr>
+        <td><strong>${esc(l.sku.sku)}</strong></td>
+        <td>${esc(l.sku.name)}</td>
+        <td>${l.qty.toLocaleString()}</td>
+        <td>$${(l.sku.cost||0).toFixed(2)}</td>
+        <td>$${(l.qty * (l.sku.cost||0)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+        <td>${l.sku.leadTime || '—'}d</td>
+        <td><span class="badge ${l.calc.gapRisk ? 'badge-red' : 'badge-amber'}">${l.calc.gapRisk ? '⚠ Urgent' : 'Standard'}</span></td>
+      </tr>
+    `).join('');
+    return `
+      <div class="po-group">
+        <div class="po-group-head">
+          <div class="po-group-title">📤 PO to: ${esc(supplier)}</div>
+          <div class="text-sm text-muted">${lines.length} line(s) · $${totalCost.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} est.</div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>SKU</th><th>Name</th><th>Qty</th><th>Unit Cost</th><th>Ext. Cost</th><th>Lead</th><th>Priority</th></tr></thead>
+            <tbody>${rows}
+              <tr class="po-total-row">
+                <td colspan="4">Total</td>
+                <td>$${totalCost.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        ${delivDate ? `<div style="padding:10px 18px;font-size:12px;color:var(--muted)">Requested delivery: <strong>${delivDate}</strong></div>` : ''}
+        ${notes ? `<div style="padding:0 18px 10px;font-size:12px;color:var(--muted)">Notes: ${esc(notes)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function exportPOExcel() {
+  calcAllSKUs();
+  const rows = [['Supplier','SKU','Name','Order Qty','Unit Cost','Ext Cost','Lead Time (days)','Priority']];
+  catalog.forEach(sku => {
+    const pos = positions[sku.id] || {};
+    const calc = pos._calc || {};
+    const qty = calc.suggestQty || 0;
+    if (qty <= 0) return;
+    const extCost = qty * (sku.cost || 0);
+    rows.push([
+      sku.supplier, sku.sku, sku.name, qty,
+      sku.cost || 0, extCost, sku.leadTime || 0,
+      calc.gapRisk ? 'Urgent' : 'Standard'
+    ]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Purchase Orders');
+  XLSX.writeFile(wb, 'purchase-orders.xlsx');
+}
+
+/* ══════════════════════════════════════════
+   IMPORT / EXPORT
+══════════════════════════════════════════ */
+function importClick() { document.getElementById('fileIn').click(); }
+
+function importFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wb = XLSX.read(ev.target.result, { type: 'binary' });
+
+    // Find the right sheet — skip Numbers export summary, prefer named 'Catalog'
+    function findSheet(namePref) {
+      // Try exact name first
+      if (wb.Sheets[namePref]) return wb.Sheets[namePref];
+      // Try any sheet whose first row has 'Supplier'
+      for (const name of wb.SheetNames) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '', header: 1 });
+        if (rows.length > 0 && rows[0].some(c => String(c).toLowerCase().includes('supplier'))) {
+          return wb.Sheets[name];
+        }
+      }
+      return null;
+    }
+
+    const catSheet = findSheet('Catalog');
+    if (catSheet) {
+      const raw = XLSX.utils.sheet_to_json(catSheet, { defval: '' });
+      if (!raw.length) { alert('No data rows found in Catalog sheet.'); return; }
+      let autoCount = 0;
+      catalog = raw.map(r => {
+        // Parse Sales History column (comma-separated weekly unit totals)
+        const histRaw = r['Sales History'] || r['sales_history'] || r['Weekly Sales'] || r['weekly_sales'] || '';
+        const histWeekly = parseSalesHistory(histRaw);
+        const histDaily  = histWeekly.map(v => v / 7);  // convert weekly → daily rate
+        const hasHistory = histDaily.length >= 2;
+        const autoStdDev   = hasHistory ? parseFloat(calcStdDev(histDaily).toFixed(2)) : null;
+        const autoBaseline = hasHistory
+          ? parseFloat((histDaily.reduce((s, v) => s + v, 0) / histDaily.length).toFixed(1))
+          : null;
+        if (hasHistory) autoCount++;
+        return {
+          id: uid(),
+          sku:           String(r['SKU'] || r['sku'] || '').trim(),
+          name:          String(r['Name'] || r['name'] || r['Product'] || '').trim(),
+          supplier:      String(r['Supplier'] || r['supplier'] || '').trim(),
+          leadTime:      parseFloat(r['Lead Time'] || r['lead_time'] || 30) || 30,
+          moq:           parseFloat(r['MOQ'] || r['moq'] || 0) || 0,
+          cost:          parseFloat(r['Cost'] || r['cost'] || r['Unit Cost'] || 0) || 0,
+          baselineSales: autoBaseline ?? (parseFloat(r['Baseline Sales'] || r['baseline_sales'] || r['Daily Sales'] || 0) || 0),
+          stdDev:        autoStdDev   ?? (parseFloat(r['Std Dev'] || r['std_dev'] || r['StdDev'] || 0) || 0),
+          salesHistory:  histWeekly,
+          stdDevSource:  hasHistory ? 'auto' : 'manual',
+        };
+      }).filter(x => x.sku);
+      renderCatalog();
+      save();
+      const msg = autoCount > 0
+        ? `✓ Imported ${catalog.length} SKUs.\n\n${autoCount} SKU(s) had Sales History — std dev and baseline auto-calculated from weekly actuals.`
+        : `✓ Imported ${catalog.length} SKUs.\n\nNo "Sales History" column found — std dev used as entered. Add a "Sales History" column with comma-separated weekly unit totals to auto-calculate std dev.`;
+      alert(msg);
+    } else {
+      alert('Could not find a Catalog sheet with a Supplier column. Make sure your file has a sheet with columns: SKU, Name, Supplier, Lead Time, MOQ, Cost, Baseline Sales, Std Dev.\n\nOptional: add a "Sales History" column with comma-separated weekly unit totals to auto-calculate std dev and baseline.');
+    }
+  };
+  reader.readAsBinaryString(file);
+  e.target.value = '';
+}
+
+function exportXLSX() {
+  calcAllSKUs();
+  const wb = XLSX.utils.book_new();
+  // Catalog
+  const catRows = [['SKU','Name','Supplier','Lead Time','MOQ','Cost','Baseline Sales','Std Dev','Sales History']];
+  catalog.forEach(s => catRows.push([s.sku,s.name,s.supplier,s.leadTime,s.moq,s.cost,s.baselineSales,s.stdDev,s.salesHistory?.join(',') || '']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Catalog');
+  // Plan
+  const planRows = [['SKU','Name','On Hand','In Transit','IT ETA','On Order','OO ETA','Actual Vel','Forecast Vel','Safety Stock','SS Override','Target','Suggest Qty','Coverage (days)']];
+  catalog.forEach(s => {
+    const pos = positions[s.id] || {};
+    const c   = pos._calc || {};
+    planRows.push([s.sku,s.name,pos.onHand||0,pos.inTransit||0,pos.itDays||'',pos.onOrder||0,pos.ooDays||'',
+      c.actualV?.toFixed(1)||'',c.forecastV?.toFixed(1)||'',c.safetyStock||0,pos.safetyStockOverride??'',c.targetStock||0,c.suggestQty||0,'']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(planRows), 'Weekly Plan');
+  XLSX.writeFile(wb, 'demand-order-plan.xlsx');
+}
+
+/* ══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════ */
+function uid() { return Math.random().toString(36).slice(2, 10); }
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+
+function parseSalesHistory(raw) {
+  if (!raw) return [];
+  return String(raw).split(/[,;\s]+/).map(Number).filter(v => !isNaN(v) && v >= 0);
+}
+
+function calcStdDev(values) {
+  if (!values || values.length < 2) return 0;
+  const n = values.length;
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / (n - 1);
+  return Math.sqrt(variance);
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  load();
+  renderCatalog();
+  buildSeasonGrid();
+  loadDemandFields();
+  calcDemand();
+  // Global settings listeners
+  ['gHorizon','gServiceLevel','gOrderDate'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+      save();
+      if (document.getElementById('tab-plan').classList.contains('active')) renderPlan();
+      if (document.getElementById('tab-demand').classList.contains('active')) calcDemand();
+    });
+  });
+});
+</script>
+</body>
+</html>
